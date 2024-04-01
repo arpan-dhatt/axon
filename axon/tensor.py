@@ -79,5 +79,11 @@ class Tensor:
     def permute_dims(self, dims: Tuple[int, ...]) -> 'Tensor':
         return ax.permute_dims(self, dims)
 
-    def mT(self):
+    def mT(self) -> 'Tensor':
         return ax.matrix_transpose(self)
+
+    def expand_dims(self, axis: int = 0) -> 'Tensor':
+        return ax.expand_dims(self, axis)
+
+    def __getitem__(self, indices):
+        return ax.array_slice(self, indices)

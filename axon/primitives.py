@@ -131,3 +131,26 @@ class Concatenate(Primitive):
 
     def __str__(self):
         return f"Concatenate<{self.axis}>"
+
+
+class Slice(UnaryPrimitive):
+    def __init__(self, arg: ax.Tensor, indices: Tuple[Union[slice, int], ...]):
+        super().__init__(arg)
+        self.indices = indices
+
+    def __str__(self):
+        def format_slice(s, length):
+            start, stop, step = s.indices(length)
+            start = start if start != 0 else ""
+            stop = stop if stop != length else ""
+            step = step if step != 1 else ""
+            return f"{start}:{stop}:{step}"
+
+        formatted_indices = []
+        for i, index in enumerate(self.indices):
+            if isinstance(index, slice):
+                formatted_indices.append(format_slice(index, self.args[0].shape[i]))
+            else:
+                formatted_indices.append(str(index))
+
+        return f"Slice<{', '.join(formatted_indices)}>"

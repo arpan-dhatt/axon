@@ -197,6 +197,56 @@ def concat(args: Tuple[ax.Tensor, ...], axis: int) -> ax.Tensor:
     return ax.Tensor(tuple(output_shape), dtype=args[0].dtype, prim=prims.Concatenate(args, axis))
 
 
+def array_slice(arg: ax.Tensor, indices: Union[int, slice, Tuple[Union[int, slice], ...]]) -> ax.Tensor:
+    # convert everything to tuples
+    if isinstance(indices, int):
+        indices = (indices,)
+    elif isinstance(indices, slice):
+        indices = (indices,)
+
+    assert len(indices) <= len(arg.shape)
+    normalized_indices = []
+    output_shape = []
+    for i, length in enumerate(arg.shape):
+        if i < len(indices):
+            index = indices[i]
+            if isinstance(index, slice):
+                start = index.start if index.start is not None else 0
+                if start < 0:
+                    start = length + start
+                stop = index.stop if index.stop is not None else length
+                if stop < 0:
+                    stop = length + stop
+                step = index.step if index.step is not None else 1
+                assert 0 <= start < length, "start index out of range"
+                assert 0 < stop <= length, "stop index out of range"
+                assert stop > start, "Slice stop index must be greater than start"
+                # funky calculation basically just offset x in f(x)
+                output_shape.append(((stop - start) + (step - 1)) // step)
+                normalized_indices.append(
+                    slice(start, stop, step))
+            if isinstance(index, int):
+                index = length + index if index < 0 else index
+                assert 0 <= index < length, "index out of range"
+                output_shape.append(1)
+                normalized_indices.append(index)
+        else:
+            output_shape.append(length)
+
+    return ax.Tensor(tuple(output_shape), arg.dtype, prim=prims.Slice(arg, tuple(normalized_indices)))
+
+
+def expand_dims(arg: ax.Tensor, axis: int = 0) -> ax.Tensor:
+    shape = list(arg.shape)
+    shape.insert(axis, 1)
+    return reshape(arg, tuple(shape))
+
+
+def stack(args: Tuple[ax.Tensor, ...], axis: int = 0) -> ax.Tensor:
+    expanded = map(lambda t: expand_dims(t, axis=axis), args)
+    return concat(tuple(expanded), axis=axis)
+
+
 def print_graph(tensors: List[ax.Tensor]):
     name_counter = [0]
     visited = {}
