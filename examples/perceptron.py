@@ -8,11 +8,12 @@ class MLP:
         self.layers = []
         for i, layer in enumerate(layers):
             if i == len(layers) - 1: break
-            w, b = ax.Tensor((layer, layers[i + 1]), ax.Float16), ax.Tensor((layers[i + 1],), ax.Float16)
+            w, b = (ax.Tensor((layer, layers[i + 1]), ax.Float16, tracer=True),
+                    ax.Tensor((layers[i + 1],), ax.Float16, tracer=True))
             self.layers.append((w, b))
 
     def __call__(self, x: ax.Tensor):
-        zero = ax.scalar(0.0, dtype=ax.Float16)
+        zero = ax.scalar(0, dtype=ax.Float16)
         for w, b in self.layers:
             x = ((x @ w) + b).maximum(zero)
         return x
@@ -25,4 +26,4 @@ if __name__ == "__main__":
     sliced = out[1:12, :4]
     sliced2 = out[1:12, 6:]
     stacked = ax.stack((sliced, sliced2))
-    ax.print_graph([ax.concat((out, out), 0), stacked.flatten().reshape((8, -1)).mean(1)])
+    ax.print_graph([ax.concat((out, out), 0), stacked.flatten().reshape((8, -1)).mean(1).squeeze()])

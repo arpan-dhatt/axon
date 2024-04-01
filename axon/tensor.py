@@ -10,16 +10,19 @@ class Tensor:
     dtype: DType
     data: Any
 
-    prim: Optional['Primitive']  # type: ignore
+    prim: Optional['ax.Primitive']  # type: ignore
 
-    def __init__(self, shape: Tuple[int, ...], dtype: DType, data=None, prim=None):
+    tracer: bool = False
+
+    def __init__(self, shape: Tuple[int, ...], dtype: DType, data=None, prim=None, tracer=False):
         self.shape = shape
         self.dtype = dtype
         self.data = data
         self.prim = prim
+        self.tracer = tracer
 
     @staticmethod
-    def scalar(value: Union[int, float, bool], dtype: DType = None):
+    def scalar(value: Union[int, float, bool], dtype: DType = None) -> 'Tensor':
         if dtype is None:
             if isinstance(value, int):
                 dtype = ax.Int32
@@ -30,6 +33,10 @@ class Tensor:
             else:
                 raise ValueError("Scalar can only be implicitly initialized value int, float, or bool")
         return Tensor((), dtype, data=value)
+
+    @staticmethod
+    def zeros_like(arg: 'Tensor') -> 'Tensor':
+        return ax.Tensor(arg.shape, arg.dtype)
 
     def __add__(self, other):
         return ax.add(self, other)
@@ -87,6 +94,17 @@ class Tensor:
 
     def flatten(self):
         return self.reshape((-1,))
+
+    def squeeze(self):
+        return ax.squeeze(self)
+
+    def set_trace(self) -> 'Tensor':
+        self.tracer = True
+        return self
+
+    def unset_trace(self) -> 'Tensor':
+        self.tracer = False
+        return self
 
     def __getitem__(self, indices):
         return ax.array_slice(self, indices)

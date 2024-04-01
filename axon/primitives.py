@@ -9,11 +9,11 @@ class Primitive:
     def __init__(self, args: Tuple[ax.Tensor, ...]):
         self.args = args
 
-    def backward(self, adjoint: ax.Tensor, argnums: Tuple[int, ...]) -> Tuple[ax.Tensor, ...]:
+    def backward(self, adjoint: ax.Tensor, argnums: Tuple[int, ...] = None) -> Tuple[ax.Tensor, ...]:
         """
         Performs an adjoint trace through the primitive
         :param adjoint: adjoint of output tensor
-        :param argnums: which args of the primitive require their adjoint
+        :param argnums: which args of the primitive require their adjoint (by default None means all args)
         """
         raise NotImplementedError(f"{type(self).__name__}.backward(...) not implemented")
 
@@ -51,6 +51,14 @@ class Broadcast(UnaryPrimitive):
 
     def __str__(self):
         return f"Broadcast<{self.shape}>"
+
+
+class StopGradient(UnaryPrimitive):
+    def __init__(self, arg: ax.Tensor):
+        super().__init__(arg)
+
+    def backward(self, adjoint: ax.Tensor, argnums: Tuple[int, ...]) -> Tuple[ax.Tensor, ...]:
+        return (ax.zeros_like(self.args[0]),)
 
 
 class PermuteDims(UnaryPrimitive):

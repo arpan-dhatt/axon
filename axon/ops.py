@@ -12,19 +12,29 @@ def broadcast(lhs: ax.Tensor, rhs: ax.Tensor, semantics=utils.BroadcastSemantics
         -> Tuple[ax.Tensor, ax.Tensor]:
     shape = utils.broadcast_shapes(lhs.shape, rhs.shape, semantics)
     if semantics == utils.BroadcastSemantics.Elementwise:
-        lhs_out = lhs if lhs.shape == shape else ax.Tensor(shape, lhs.dtype, prim=prims.Broadcast(lhs, shape))
-        rhs_out = rhs if rhs.shape == shape else ax.Tensor(shape, rhs.dtype, prim=prims.Broadcast(rhs, shape))
+        lhs_out = lhs if lhs.shape == shape else ax.Tensor(shape, lhs.dtype,
+                                                           prim=prims.Broadcast(lhs, shape),
+                                                           tracer=lhs.tracer)
+        rhs_out = rhs if rhs.shape == shape else ax.Tensor(shape, rhs.dtype,
+                                                           prim=prims.Broadcast(rhs, shape),
+                                                           tracer=rhs.tracer)
     else:  # BroadcastSemantics.MatMul
         lhs_shape, rhs_shape = shape[:-2] + lhs.shape[-2:], shape[:-2] + rhs.shape[-2:]
         lhs_out = lhs if lhs.shape == lhs_shape else ax.Tensor(lhs_shape, lhs.dtype,
-                                                               prim=prims.Broadcast(lhs, lhs_shape))
+                                                               prim=prims.Broadcast(lhs, lhs_shape),
+                                                               tracer=lhs.tracer)
         rhs_out = rhs if rhs.shape == rhs_shape else ax.Tensor(rhs_shape, rhs.dtype,
-                                                               prim=prims.Broadcast(rhs, rhs_shape))
+                                                               prim=prims.Broadcast(rhs, rhs_shape),
+                                                               tracer=rhs.tracer)
     return lhs_out, rhs_out
 
 
 def cast(arg: ax.Tensor, dtype: DType) -> ax.Tensor:
-    return ax.Tensor(arg.shape, dtype, prim=prims.Cast(arg, dtype))
+    return ax.Tensor(arg.shape, dtype, prim=prims.Cast(arg, dtype), tracer=arg.tracer)
+
+
+def stop_gradient(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.StopGradient(arg), tracer=arg.tracer)
 
 
 def reshape(arg: ax.Tensor, shape: Union[int, Tuple[int, ...]]) -> ax.Tensor:
@@ -51,7 +61,7 @@ def reshape(arg: ax.Tensor, shape: Union[int, Tuple[int, ...]]) -> ax.Tensor:
         shape = tuple(shape)
 
     assert utils.shaped_size(arg.shape) == utils.shaped_size(shape), f"Can't reshape {arg.shape} to {shape}"
-    return ax.Tensor(shape, arg.dtype, prim=prims.Reshape(arg, shape))
+    return ax.Tensor(shape, arg.dtype, prim=prims.Reshape(arg, shape), tracer=arg.tracer)
 
 
 def permute_dims(arg: ax.Tensor, dims: Tuple[int, ...]) -> ax.Tensor:
@@ -60,7 +70,7 @@ def permute_dims(arg: ax.Tensor, dims: Tuple[int, ...]) -> ax.Tensor:
         assert 0 <= dim < len(arg.shape), f"dim {dim} in permute_dims out of bounds"
         new_shape.append(arg.shape[dim])
     new_shape = tuple(new_shape)
-    return ax.Tensor(new_shape, arg.dtype, prim=prims.PermuteDims(arg, dims))
+    return ax.Tensor(new_shape, arg.dtype, prim=prims.PermuteDims(arg, dims), tracer=arg.tracer)
 
 
 def matrix_transpose(arg: ax.Tensor) -> ax.Tensor:
@@ -74,32 +84,32 @@ def add(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.add requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
-    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Add(lhs, rhs))
+    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Add(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
 def subtract(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.subtract requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
-    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Subtract(lhs, rhs))
+    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Subtract(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
 def multiply(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, \
         f"axon.multiply requires both elements have the same dtype ({lhs.dtype} != {rhs.dtype})"
-    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Multiply(lhs, rhs))
+    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Multiply(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
 def divide(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.divide requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
-    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Divide(lhs, rhs))
+    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Divide(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
 def negate(arg: ax.Tensor) -> ax.Tensor:
-    return ax.Tensor(arg.shape, arg.dtype, prim=prims.Negate(arg))
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.Negate(arg), tracer=arg.tracer)
 
 
 def reduce_sum(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -> ax.Tensor:
@@ -108,7 +118,7 @@ def reduce_sum(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -
     for axis in axes:
         assert 0 <= axis < ndim, f"Axis {axis} is out of bounds for tensor of dimension {ndim}"
     new_shape = tuple(1 if i in axes else dim for i, dim in enumerate(arg.shape))
-    return ax.Tensor(new_shape, arg.dtype, prim=prims.Sum(arg, axes))
+    return ax.Tensor(new_shape, arg.dtype, prim=prims.Sum(arg, axes), tracer=arg.tracer)
 
 
 def product(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -> ax.Tensor:
@@ -117,7 +127,7 @@ def product(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -> a
     for axis in axes:
         assert 0 <= axis < ndim, f"Axis {axis} is out of bounds for tensor of dimension {ndim}"
     new_shape = tuple(1 if i in axes else dim for i, dim in enumerate(arg.shape))
-    return ax.Tensor(new_shape, arg.dtype, prim=prims.Product(arg, axes))
+    return ax.Tensor(new_shape, arg.dtype, prim=prims.Product(arg, axes), tracer=arg.tracer)
 
 
 def mean(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -> ax.Tensor:
@@ -133,7 +143,7 @@ def reduce_max(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -
     for axis in axes:
         assert 0 <= axis < ndim, f"Axis {axis} is out of bounds for tensor of dimension {ndim}"
     new_shape = tuple(1 if i in axes else dim for i, dim in enumerate(arg.shape))
-    return ax.Tensor(new_shape, arg.dtype, prim=prims.Max(arg, axes))
+    return ax.Tensor(new_shape, arg.dtype, prim=prims.Max(arg, axes), tracer=arg.tracer)
 
 
 def reduce_min(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None]) -> ax.Tensor:
@@ -142,21 +152,21 @@ def reduce_min(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None]) -> ax.Te
     for axis in axes:
         assert 0 <= axis < ndim, f"Axis {axis} is out of bounds for tensor of dimension {ndim}"
     new_shape = tuple(1 if i in axes else dim for i, dim in enumerate(arg.shape))
-    return ax.Tensor(new_shape, arg.dtype, prim=prims.Min(arg, axes))
+    return ax.Tensor(new_shape, arg.dtype, prim=prims.Min(arg, axes), tracer=arg.tracer)
 
 
 def maximum(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.maximum requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
-    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Maximum(lhs, rhs))
+    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Maximum(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
 def minimum(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.minimum requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
-    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Minimum(lhs, rhs))
+    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Minimum(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
 def matmul(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
@@ -164,7 +174,7 @@ def matmul(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
     assert lhs.dtype == rhs.dtype, (f"axon.matmul requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
     return ax.Tensor(utils.broadcast_shapes(lhs.shape, rhs.shape, semantics=utils.BroadcastSemantics.MatMul),
-                     lhs.dtype, prim=prims.MatMul(lhs, rhs))
+                     lhs.dtype, prim=prims.MatMul(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
 def concat(args: Tuple[ax.Tensor, ...], axis: int) -> ax.Tensor:
@@ -184,7 +194,8 @@ def concat(args: Tuple[ax.Tensor, ...], axis: int) -> ax.Tensor:
                 output_shape[-1] += arg.shape[i]
             else:
                 assert arg.shape[i] == args[0].shape[i], "length along all axes except concat axis must be the same"
-    return ax.Tensor(tuple(output_shape), dtype=args[0].dtype, prim=prims.Concatenate(args, axis))
+    return ax.Tensor(tuple(output_shape), dtype=args[0].dtype, prim=prims.Concatenate(args, axis),
+                     tracer=any(map(lambda t: t.tracer, args)))
 
 
 def array_slice(arg: ax.Tensor, indices: Union[int, slice, Tuple[Union[int, slice], ...]]) -> ax.Tensor:
@@ -223,7 +234,8 @@ def array_slice(arg: ax.Tensor, indices: Union[int, slice, Tuple[Union[int, slic
         else:
             output_shape.append(length)
 
-    return ax.Tensor(tuple(output_shape), arg.dtype, prim=prims.Slice(arg, tuple(normalized_indices)))
+    return ax.Tensor(tuple(output_shape), arg.dtype, prim=prims.Slice(arg, tuple(normalized_indices)),
+                     tracer=arg.tracer)
 
 
 def expand_dims(arg: ax.Tensor, axis: int = 0) -> ax.Tensor:
@@ -239,6 +251,11 @@ def stack(args: Tuple[ax.Tensor, ...], axis: int = 0) -> ax.Tensor:
 
 def flatten(arg: ax.Tensor) -> ax.Tensor:
     return reshape(arg, (-1,))
+
+
+def squeeze(arg: ax.Tensor) -> ax.Tensor:
+    new_shape = tuple([dim for dim in arg.shape if dim != 1])
+    return reshape(arg, new_shape)
 
 
 def print_graph(tensors: List[ax.Tensor]):
@@ -257,7 +274,7 @@ def print_graph(tensors: List[ax.Tensor]):
         name = name_counter[0]
         name_counter[0] += 1
         visited[cursor] = name
-        print(f"%{name}:<{cursor.shape}, {cursor.dtype.name}> = ", end="")
+        print(f"%{name}:<{cursor.shape}, {cursor.dtype.name}>{'*' if cursor.tracer else ''} = ", end="")
         if cursor.prim is not None:
             print(f"{str(cursor.prim)}(", end="")
             print(", ".join(map(lambda t: f"%{visited[t]}", cursor.prim.args)), end="")

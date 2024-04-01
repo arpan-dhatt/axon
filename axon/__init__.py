@@ -3,8 +3,13 @@ from axon.dtype import DType, UInt8, UInt16, UInt32, UInt64, Int8, Int16, Int32,
 from axon.tensor import Tensor
 import axon.utils
 
+# primitive base class
+from axon.primitives import Primitive
+
 # unary
-from axon.ops import broadcast, cast, negate, reshape, permute_dims, matrix_transpose, array_slice, expand_dims, flatten
+from axon.ops import broadcast, cast, negate, stop_gradient
+# manipulation
+from axon.ops import reshape, permute_dims, matrix_transpose, array_slice, expand_dims, flatten, squeeze
 # reduction
 from axon.ops import reduce_sum, product, mean, reduce_min, reduce_max
 # binary
@@ -14,5 +19,9 @@ from axon.ops import concat, stack
 # debugging
 from axon.ops import print_graph
 
+# transforms
+from axon.transforms import value_and_grad, grad
+
 # expose static methods of tensor
 scalar = Tensor.scalar
+zeros_like = Tensor.zeros_like
