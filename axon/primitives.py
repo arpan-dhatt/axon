@@ -9,7 +9,7 @@ class Primitive:
     def __init__(self, args: Tuple[ax.Tensor, ...]):
         self.args = args
 
-    def backward(self, adjoint: ax.Tensor, argnums: Tuple[int, ...] = None) -> Tuple[ax.Tensor, ...]:
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
         """
         Performs an adjoint trace through the primitive
         :param adjoint: adjoint of output tensor
@@ -57,7 +57,7 @@ class StopGradient(UnaryPrimitive):
     def __init__(self, arg: ax.Tensor):
         super().__init__(arg)
 
-    def backward(self, adjoint: ax.Tensor, argnums: Tuple[int, ...]) -> Tuple[ax.Tensor, ...]:
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
         return (ax.zeros_like(self.args[0]),)
 
 
