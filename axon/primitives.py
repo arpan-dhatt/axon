@@ -40,6 +40,9 @@ class Reshape(UnaryPrimitive):
         super().__init__(arg)
         self.shape = shape
 
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (ax.reshape(adjoint, self.args[0].shape),)
+
     def __str__(self):
         return f"Reshape<{self.shape}>"
 
@@ -105,19 +108,37 @@ class BinaryPrimitive(Primitive):
 
 
 class Add(BinaryPrimitive):
-    pass
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return adjoint, adjoint
 
 
 class Subtract(BinaryPrimitive):
-    pass
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return adjoint, -adjoint
 
 
 class Multiply(BinaryPrimitive):
-    pass
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        lhs, rhs = self.args
+        lhs_adjoint = adjoint * rhs
+        rhs_adjoint = adjoint * lhs
+        return lhs_adjoint, rhs_adjoint
 
 
 class Divide(BinaryPrimitive):
-    pass
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        lhs, rhs = self.args
+        lhs_adjoint = adjoint / rhs
+        rhs_adjoint = -adjoint * lhs / (rhs * rhs)
+        return lhs_adjoint, rhs_adjoint
+
+
+class MatMul(BinaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        lhs, rhs = self.args
+        lhs_adjoint = ax.matmul(adjoint, rhs.mT())
+        rhs_adjoint = ax.matmul(lhs.mT(), adjoint)
+        return lhs_adjoint, rhs_adjoint
 
 
 class Maximum(BinaryPrimitive):
@@ -125,10 +146,6 @@ class Maximum(BinaryPrimitive):
 
 
 class Minimum(BinaryPrimitive):
-    pass
-
-
-class MatMul(BinaryPrimitive):
     pass
 
 
