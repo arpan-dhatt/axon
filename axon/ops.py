@@ -103,10 +103,7 @@ def negate(arg: ax.Tensor) -> ax.Tensor:
 
 
 def reduce_sum(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -> ax.Tensor:
-    if axes is None:
-        axes = tuple(range(len(arg.shape)))
-    elif isinstance(axes, int):
-        axes = (axes,)
+    axes = utils.reformat_reduce_axes(arg.shape, axes)
     ndim = len(arg.shape)
     for axis in axes:
         assert 0 <= axis < ndim, f"Axis {axis} is out of bounds for tensor of dimension {ndim}"
@@ -115,10 +112,7 @@ def reduce_sum(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -
 
 
 def product(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -> ax.Tensor:
-    if axes is None:
-        axes = tuple(range(len(arg.shape)))
-    if isinstance(axes, int):
-        axes = (axes,)
+    axes = utils.reformat_reduce_axes(arg.shape, axes)
     ndim = len(arg.shape)
     for axis in axes:
         assert 0 <= axis < ndim, f"Axis {axis} is out of bounds for tensor of dimension {ndim}"
@@ -127,15 +121,14 @@ def product(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -> a
 
 
 def mean(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -> ax.Tensor:
+    axes = utils.reformat_reduce_axes(arg.shape, axes)
     summed = reduce_sum(arg, axes)
-    return summed / ax.Tensor.scalar(1.0, arg.dtype)
+    return summed / ax.Tensor.scalar(
+        utils.shaped_size([l for dim, l in enumerate(arg.shape) if (dim in axes)]), arg.dtype)
 
 
 def reduce_max(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -> ax.Tensor:
-    if axes is None:
-        axes = tuple(range(len(arg.shape)))
-    if isinstance(axes, int):
-        axes = (axes,)
+    axes = utils.reformat_reduce_axes(arg.shape, axes)
     ndim = len(arg.shape)
     for axis in axes:
         assert 0 <= axis < ndim, f"Axis {axis} is out of bounds for tensor of dimension {ndim}"
@@ -144,10 +137,7 @@ def reduce_max(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -
 
 
 def reduce_min(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None]) -> ax.Tensor:
-    if axes is None:
-        axes = tuple(range(len(arg.shape)))
-    if isinstance(axes, int):
-        axes = (axes,)
+    axes = utils.reformat_reduce_axes(arg.shape, axes)
     ndim = len(arg.shape)
     for axis in axes:
         assert 0 <= axis < ndim, f"Axis {axis} is out of bounds for tensor of dimension {ndim}"
@@ -245,6 +235,10 @@ def expand_dims(arg: ax.Tensor, axis: int = 0) -> ax.Tensor:
 def stack(args: Tuple[ax.Tensor, ...], axis: int = 0) -> ax.Tensor:
     expanded = map(lambda t: expand_dims(t, axis=axis), args)
     return concat(tuple(expanded), axis=axis)
+
+
+def flatten(arg: ax.Tensor) -> ax.Tensor:
+    return reshape(arg, (-1,))
 
 
 def print_graph(tensors: List[ax.Tensor]):

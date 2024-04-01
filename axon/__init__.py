@@ -3,7 +3,7 @@ from axon.dtype import DType, UInt8, UInt16, UInt32, UInt64, Int8, Int16, Int32,
 from axon.tensor import Tensor
 
 # unary
-from axon.ops import broadcast, cast, negate, reshape, permute_dims, matrix_transpose, array_slice, expand_dims
+from axon.ops import broadcast, cast, negate, reshape, permute_dims, matrix_transpose, array_slice, expand_dims, flatten
 # reduction
 from axon.ops import reduce_sum, product, mean, reduce_min, reduce_max
 # binary

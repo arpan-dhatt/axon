@@ -85,5 +85,8 @@ class Tensor:
     def expand_dims(self, axis: int = 0) -> 'Tensor':
         return ax.expand_dims(self, axis)
 
+    def flatten(self):
+        return self.reshape((-1,))
+
     def __getitem__(self, indices):
         return ax.array_slice(self, indices)

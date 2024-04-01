@@ -25,4 +25,4 @@ if __name__ == "__main__":
     sliced = out[1:12, :4]
     sliced2 = out[1:12, 6:]
     stacked = ax.stack((sliced, sliced2))
-    ax.print_graph([ax.concat((out, out), 0), stacked])
+    ax.print_graph([ax.concat((out, out), 0), stacked.flatten().reshape((8, -1)).mean(1)])
