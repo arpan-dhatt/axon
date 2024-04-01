@@ -1,6 +1,7 @@
 from axon.dtype import DType, UInt8, UInt16, UInt32, UInt64, Int8, Int16, Int32, Int64, Float16, Float32, Float64, \
     BFloat16, Bool
 from axon.tensor import Tensor
+import axon.utils
 
 # unary
 from axon.ops import broadcast, cast, negate, reshape, permute_dims, matrix_transpose, array_slice, expand_dims, flatten
