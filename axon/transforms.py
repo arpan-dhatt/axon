@@ -36,6 +36,8 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
 
         # recurse from primals using deps, caching completed {primal: adjoints}
         adjoint_mapping: Dict[ax.Tensor, ax.Tensor] = {output: ax.scalar(1, output.dtype)}
+        # unset trace here since acc_adjoint won't recalculate this adjoint we've made already
+        output.unset_trace()
         # use incomplete adjoints {primal: {adjoint_dep: adjoint}}
         incomplete_adjoints: Dict[ax.Tensor, Dict[ax.Tensor, ax.Tensor]] = defaultdict(dict)
         # prevents running backward multiple times
@@ -53,6 +55,8 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
                 # complete adjoint, just return it
                 return adjoint_mapping[primal_cursor]
             else:
+                # unset trace for all primals along the way
+                primal_cursor.unset_trace()
                 # go through all adjoint trace dependencies and run backward
                 for adjoint_dep in adjoint_dep_mapping[primal_cursor]:
                     backward(adjoint_dep)

@@ -48,12 +48,27 @@ class Reshape(UnaryPrimitive):
 
 
 class Broadcast(UnaryPrimitive):
-    def __init__(self, arg: ax.Tensor, shape: Tuple[int, ...]):
+    def __init__(self, arg: ax.Tensor, shape: Tuple[int, ...], semantics=ax.utils.BroadcastSemantics.Elementwise):
         super().__init__(arg)
         self.shape = shape
+        self.semantics = semantics
+
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        # deal with expanded dims first
+        sum_axes = list(range(0, len(adjoint.shape) - len(self.args[0].shape)))
+        # now add any dims in adjoint_shape that were 1 in original shape but expanded
+        for i in range(-len(self.args[0].shape), 0):
+            if self.args[0].shape[i] == 1 and adjoint.shape[i] > 1:
+                sum_axes.append(len(adjoint.shape) - i)
+            if i >= -2 and self.semantics == ax.utils.BroadcastSemantics.MatMul:
+                # ignore last two dimensions on matmul
+                break
+
+        return (ax.reshape(ax.reduce_sum(adjoint, tuple(sum_axes)), self.args[0].shape),)
 
     def __str__(self):
-        return f"Broadcast<{self.shape}>"
+        sem_str = 'E' if self.semantics == ax.utils.BroadcastSemantics.Elementwise else 'M'
+        return f"Broadcast<{self.shape}, {sem_str}>"
 
 
 class StopGradient(UnaryPrimitive):
@@ -87,6 +102,9 @@ class ReductionPrimitive(UnaryPrimitive):
 
 
 class Sum(ReductionPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (ax.broadcast(self.args[0], adjoint)[1],)
+
     pass
 
 

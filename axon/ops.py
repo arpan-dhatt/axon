@@ -20,12 +20,16 @@ def broadcast(lhs: ax.Tensor, rhs: ax.Tensor, semantics=utils.BroadcastSemantics
                                                            tracer=rhs.tracer)
     else:  # BroadcastSemantics.MatMul
         lhs_shape, rhs_shape = shape[:-2] + lhs.shape[-2:], shape[:-2] + rhs.shape[-2:]
-        lhs_out = lhs if lhs.shape == lhs_shape else ax.Tensor(lhs_shape, lhs.dtype,
-                                                               prim=prims.Broadcast(lhs, lhs_shape),
-                                                               tracer=lhs.tracer)
-        rhs_out = rhs if rhs.shape == rhs_shape else ax.Tensor(rhs_shape, rhs.dtype,
-                                                               prim=prims.Broadcast(rhs, rhs_shape),
-                                                               tracer=rhs.tracer)
+        lhs_replacement = ax.Tensor(lhs_shape, lhs.dtype,
+                                    prim=prims.Broadcast(lhs, lhs_shape,
+                                                         semantics=utils.BroadcastSemantics.MatMul),
+                                    tracer=lhs.tracer)
+        lhs_out = lhs if lhs.shape == lhs_shape else lhs_replacement
+        rhs_replacement = ax.Tensor(rhs_shape, rhs.dtype,
+                                    prim=prims.Broadcast(rhs, rhs_shape,
+                                                         semantics=utils.BroadcastSemantics.MatMul),
+                                    tracer=rhs.tracer)
+        rhs_out = rhs if rhs.shape == rhs_shape else rhs_replacement
     return lhs_out, rhs_out
 
 
@@ -258,8 +262,10 @@ def squeeze(arg: ax.Tensor) -> ax.Tensor:
     return reshape(arg, new_shape)
 
 
-def print_graph(tensors: List[ax.Tensor]):
+def print_graph(tree):
     name_counter = [0]
+    # keep names in original tree for easier debugging
+    tree_names = dict(map(lambda t: (t[1], t[0]), ax.utils.tree_flatten(tree)))
     visited = {}
 
     def traverse(cursor: ax.Tensor):
@@ -270,17 +276,20 @@ def print_graph(tensors: List[ax.Tensor]):
             for arg in cursor.prim.args:
                 traverse(arg)
 
-        # print cursor
-        name = name_counter[0]
-        name_counter[0] += 1
+        # print cursor using tree or intermediate name
+        if cursor in tree_names:
+            name = f"@{tree_names[cursor]}"
+        else:
+            name = f"%{name_counter[0]}"
+            name_counter[0] += 1
         visited[cursor] = name
-        print(f"%{name}:<{cursor.shape}, {cursor.dtype.name}>{'*' if cursor.tracer else ''} = ", end="")
+        print(f"{name}:<{cursor.shape}, {cursor.dtype.name}>{'*' if cursor.tracer else ''} = ", end="")
         if cursor.prim is not None:
             print(f"{str(cursor.prim)}(", end="")
-            print(", ".join(map(lambda t: f"%{visited[t]}", cursor.prim.args)), end="")
+            print(", ".join(map(lambda t: f"{visited[t]}", cursor.prim.args)), end="")
             print(")")
         else:
             print(cursor.data)
 
-    for tensor in tensors:
+    for key, tensor in ax.utils.tree_flatten(tree):
         traverse(tensor)
