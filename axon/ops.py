@@ -41,7 +41,7 @@ def stop_gradient(arg: ax.Tensor) -> ax.Tensor:
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.StopGradient(arg), tracer=arg.tracer)
 
 
-def reshape(arg: ax.Tensor, shape: Union[int, Tuple[int, ...]]) -> ax.Tensor:
+def reshape(arg: ax.Tensor, shape: Union[int, Sequence[int]]) -> ax.Tensor:
     if isinstance(shape, int):
         shape = (shape,)
 
@@ -65,16 +65,16 @@ def reshape(arg: ax.Tensor, shape: Union[int, Tuple[int, ...]]) -> ax.Tensor:
         shape = tuple(shape)
 
     assert utils.shaped_size(arg.shape) == utils.shaped_size(shape), f"Can't reshape {arg.shape} to {shape}"
-    return ax.Tensor(shape, arg.dtype, prim=prims.Reshape(arg, shape), tracer=arg.tracer)
+    return ax.Tensor(tuple(shape), arg.dtype, prim=prims.Reshape(arg, tuple(shape)), tracer=arg.tracer)
 
 
-def permute_dims(arg: ax.Tensor, dims: Tuple[int, ...]) -> ax.Tensor:
+def permute_dims(arg: ax.Tensor, dims: Sequence[int]) -> ax.Tensor:
     new_shape = []
     for dim in dims:
         assert 0 <= dim < len(arg.shape), f"dim {dim} in permute_dims out of bounds"
         new_shape.append(arg.shape[dim])
     new_shape = tuple(new_shape)
-    return ax.Tensor(new_shape, arg.dtype, prim=prims.PermuteDims(arg, dims), tracer=arg.tracer)
+    return ax.Tensor(new_shape, arg.dtype, prim=prims.PermuteDims(arg, tuple(dims)), tracer=arg.tracer)
 
 
 def matrix_transpose(arg: ax.Tensor) -> ax.Tensor:
@@ -120,47 +120,47 @@ def negate(arg: ax.Tensor) -> ax.Tensor:
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Negate(arg), tracer=arg.tracer)
 
 
-def reduce_sum(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -> ax.Tensor:
+def reduce_sum(arg: ax.Tensor, axes: Union[int, Sequence[int], None] = None) -> ax.Tensor:
     axes = utils.reformat_reduce_axes(arg.shape, axes)
     ndim = len(arg.shape)
     for axis in axes:
         assert 0 <= axis < ndim, f"Axis {axis} is out of bounds for tensor of dimension {ndim}"
     new_shape = tuple(1 if i in axes else dim for i, dim in enumerate(arg.shape))
-    return ax.Tensor(new_shape, arg.dtype, prim=prims.Sum(arg, axes), tracer=arg.tracer)
+    return ax.Tensor(new_shape, arg.dtype, prim=prims.Sum(arg, tuple(axes)), tracer=arg.tracer)
 
 
-def product(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -> ax.Tensor:
+def product(arg: ax.Tensor, axes: Union[int, Sequence[int], None] = None) -> ax.Tensor:
     axes = utils.reformat_reduce_axes(arg.shape, axes)
     ndim = len(arg.shape)
     for axis in axes:
         assert 0 <= axis < ndim, f"Axis {axis} is out of bounds for tensor of dimension {ndim}"
     new_shape = tuple(1 if i in axes else dim for i, dim in enumerate(arg.shape))
-    return ax.Tensor(new_shape, arg.dtype, prim=prims.Product(arg, axes), tracer=arg.tracer)
+    return ax.Tensor(new_shape, arg.dtype, prim=prims.Product(arg, tuple(axes)), tracer=arg.tracer)
 
 
-def mean(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -> ax.Tensor:
+def mean(arg: ax.Tensor, axes: Union[int, Sequence[int], None] = None) -> ax.Tensor:
     axes = utils.reformat_reduce_axes(arg.shape, axes)
     summed = reduce_sum(arg, axes)
     return summed / ax.Tensor.scalar(
         utils.shaped_size([l for dim, l in enumerate(arg.shape) if (dim in axes)]), arg.dtype)
 
 
-def reduce_max(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None] = None) -> ax.Tensor:
+def reduce_max(arg: ax.Tensor, axes: Union[int, Sequence[int], None] = None) -> ax.Tensor:
     axes = utils.reformat_reduce_axes(arg.shape, axes)
     ndim = len(arg.shape)
     for axis in axes:
         assert 0 <= axis < ndim, f"Axis {axis} is out of bounds for tensor of dimension {ndim}"
     new_shape = tuple(1 if i in axes else dim for i, dim in enumerate(arg.shape))
-    return ax.Tensor(new_shape, arg.dtype, prim=prims.Max(arg, axes), tracer=arg.tracer)
+    return ax.Tensor(new_shape, arg.dtype, prim=prims.Max(arg, tuple(axes)), tracer=arg.tracer)
 
 
-def reduce_min(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None]) -> ax.Tensor:
+def reduce_min(arg: ax.Tensor, axes: Union[int, Sequence[int], None]) -> ax.Tensor:
     axes = utils.reformat_reduce_axes(arg.shape, axes)
     ndim = len(arg.shape)
     for axis in axes:
         assert 0 <= axis < ndim, f"Axis {axis} is out of bounds for tensor of dimension {ndim}"
     new_shape = tuple(1 if i in axes else dim for i, dim in enumerate(arg.shape))
-    return ax.Tensor(new_shape, arg.dtype, prim=prims.Min(arg, axes), tracer=arg.tracer)
+    return ax.Tensor(new_shape, arg.dtype, prim=prims.Min(arg, tuple(axes)), tracer=arg.tracer)
 
 
 def maximum(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) -> ax.Tensor:
@@ -251,7 +251,7 @@ def matmul(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
                      lhs.dtype, prim=prims.MatMul(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
-def concat(args: Tuple[ax.Tensor, ...], axis: int) -> ax.Tensor:
+def concat(args: Sequence[ax.Tensor], axis: int) -> ax.Tensor:
     assert len(args) > 0
     # all shapes must be same except on concatenation axis
     assert all(
@@ -268,16 +268,18 @@ def concat(args: Tuple[ax.Tensor, ...], axis: int) -> ax.Tensor:
                 output_shape[-1] += arg.shape[i]
             else:
                 assert arg.shape[i] == args[0].shape[i], "length along all axes except concat axis must be the same"
-    return ax.Tensor(tuple(output_shape), dtype=args[0].dtype, prim=prims.Concatenate(args, axis),
+    return ax.Tensor(tuple(output_shape), dtype=args[0].dtype, prim=prims.Concatenate(tuple(args), axis),
                      tracer=any(map(lambda t: t.tracer, args)))
 
 
-def array_slice(arg: ax.Tensor, indices: Union[int, slice, Tuple[Union[int, slice], ...]]) -> ax.Tensor:
+def array_slice(arg: ax.Tensor, indices: Union[int, slice, Sequence[Union[int, slice]]]) -> ax.Tensor:
     # convert everything to tuples
     if isinstance(indices, int):
         indices = (indices,)
     elif isinstance(indices, slice):
         indices = (indices,)
+    elif not isinstance(indices, tuple):
+        indices = tuple(indices)
 
     assert len(indices) <= len(arg.shape)
     normalized_indices = []
@@ -318,7 +320,7 @@ def expand_dims(arg: ax.Tensor, axis: int = 0) -> ax.Tensor:
     return reshape(arg, tuple(shape))
 
 
-def stack(args: Tuple[ax.Tensor, ...], axis: int = 0) -> ax.Tensor:
+def stack(args: Sequence[ax.Tensor], axis: int = 0) -> ax.Tensor:
     expanded = map(lambda t: expand_dims(t, axis=axis), args)
     return concat(tuple(expanded), axis=axis)
 

@@ -46,7 +46,7 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
         # unset trace here since acc_adjoint won't recalculate this adjoint we've made already
         output.unset_trace()
         # use incomplete adjoints {primal: {adjoint_dep: [adjoints]}}
-        # use list since a primal may be used more than once in the same downstream primal (e.g. add(a, a))
+        # use list since a primal's output may be used more than once downstream (e.g. add(a, a))
         incomplete_adjoints: Dict[ax.Tensor, Dict[ax.Tensor, List[ax.Tensor]]] = defaultdict(dict)
         # prevents running backward multiple times and repeat filling incomplete adjoints
         backward_has_run: Set[ax.Tensor] = set()

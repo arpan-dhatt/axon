@@ -71,12 +71,12 @@ def normalize_axis(axis: int, ndim: int) -> int:
     return axis
 
 
-def reformat_reduce_axes(shape: Tuple[int, ...], axes: Union[int, Tuple[int, ...], None]) -> Tuple[int, ...]:
+def reformat_reduce_axes(shape: Sequence[int], axes: Union[int, Sequence[int], None]) -> Tuple[int, ...]:
     if axes is None:
         axes = tuple(range(len(shape)))
     if isinstance(axes, int):
         axes = (axes,)
-    return axes
+    return axes if isinstance(axes, tuple) else tuple(axes)
 
 
 def shaped_size(shape: Sequence[int]) -> int:

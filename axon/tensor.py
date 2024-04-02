@@ -113,19 +113,19 @@ class Tensor:
     def cast(self, dtype: DType) -> 'Tensor':
         return ax.cast(self, dtype)
 
-    def reduce_sum(self, axes: Union[int, Tuple[int, ...], None] = None) -> 'Tensor':
+    def reduce_sum(self, axes: Union[int, Sequence[int], None] = None) -> 'Tensor':
         return ax.reduce_sum(self, axes)
 
-    def product(self, axes: Union[int, Tuple[int, ...], None] = None) -> 'Tensor':
+    def product(self, axes: Union[int, Sequence[int], None] = None) -> 'Tensor':
         return ax.product(self, axes)
 
-    def mean(self, axes: Union[int, Tuple[int, ...], None] = None) -> 'Tensor':
+    def mean(self, axes: Union[int, Sequence[int], None] = None) -> 'Tensor':
         return ax.mean(self, axes)
 
-    def reduce_max(self, axes: Union[int, Tuple[int, ...], None] = None) -> 'Tensor':
+    def reduce_max(self, axes: Union[int, Sequence[int], None] = None) -> 'Tensor':
         return ax.reduce_max(self, axes)
 
-    def reduce_min(self, axes: Union[int, Tuple[int, ...], None] = None) -> 'Tensor':
+    def reduce_min(self, axes: Union[int, Sequence[int], None] = None) -> 'Tensor':
         return ax.reduce_min(self, axes)
 
     def maximum(self, rhs: 'Tensor') -> 'Tensor':
@@ -134,10 +134,10 @@ class Tensor:
     def minimum(self, rhs: 'Tensor') -> 'Tensor':
         return ax.minimum(self, rhs)
 
-    def reshape(self, shape: Tuple[int, ...]) -> 'Tensor':
+    def reshape(self, shape: Sequence[int]) -> 'Tensor':
         return ax.reshape(self, shape)
 
-    def permute_dims(self, dims: Tuple[int, ...]) -> 'Tensor':
+    def permute_dims(self, dims: Sequence[int]) -> 'Tensor':
         return ax.permute_dims(self, dims)
 
     def mT(self) -> 'Tensor':

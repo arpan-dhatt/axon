@@ -20,4 +20,4 @@ if __name__ == "__main__":
 
     loss, grads = ax.value_and_grad(loss_fn)((w, b), x, y)
     print(grads)
-    ax.print_graph({"w": w, "b": b, "loss": loss, "grads": grads, "x": x, "gt": y})
+    ax.print_graph({"w": w, "b": ax.stack([w, w], axis=0), "loss": loss, "grads": grads, "x": x, "gt": y})
