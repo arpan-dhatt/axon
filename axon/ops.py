@@ -100,9 +100,10 @@ def subtract(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
 
 def multiply(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
-    assert lhs.dtype == rhs.dtype, \
-        f"axon.multiply requires both elements have the same dtype ({lhs.dtype} != {rhs.dtype})"
-    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Multiply(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
+    out_dtype = rhs.dtype if lhs.dtype == ax.Bool else lhs.dtype
+    assert lhs.dtype == rhs.dtype or lhs.dtype == ax.Bool or rhs.dtype == ax.Bool, \
+        f"axon.multiply requires both elements have the same dtype ({lhs.dtype} != {rhs.dtype}) or one be ax.Bool"
+    return ax.Tensor(lhs.shape, out_dtype, prim=prims.Multiply(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
 def divide(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
@@ -171,6 +172,63 @@ def minimum(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
     assert lhs.dtype == rhs.dtype, (f"axon.minimum requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
     return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Minimum(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
+
+
+def greater(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+    lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
+    assert lhs.dtype == rhs.dtype, (f"axon.greater requires both elements have the same dtype "
+                                    f"({lhs.dtype} != {rhs.dtype})")
+    return ax.Tensor(lhs.shape, ax.Bool, prim=prims.Greater(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
+
+
+def lesser(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+    lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
+    assert lhs.dtype == rhs.dtype, (f"axon.lesser requires both elements have the same dtype "
+                                    f"({lhs.dtype} != {rhs.dtype})")
+    return ax.Tensor(lhs.shape, ax.Bool, prim=prims.Lesser(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
+
+
+def equal(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+    lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
+    assert lhs.dtype == rhs.dtype, (f"axon.equal requires both elements have the same dtype "
+                                    f"({lhs.dtype} != {rhs.dtype})")
+    return ax.Tensor(lhs.shape, ax.Bool, prim=prims.Equal(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
+
+
+def greater_or_equal(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+    lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
+    assert lhs.dtype == rhs.dtype, (f"axon.greater_or_equal requires both elements have the same dtype "
+                                    f"({lhs.dtype} != {rhs.dtype})")
+    return ax.Tensor(lhs.shape, ax.Bool, prim=prims.GreaterOrEqual(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
+
+
+def lesser_or_equal(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+    lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
+    assert lhs.dtype == rhs.dtype, (f"axon.lesser_or_equal requires both elements have the same dtype "
+                                    f"({lhs.dtype} != {rhs.dtype})")
+    return ax.Tensor(lhs.shape, ax.Bool, prim=prims.LesserOrEqual(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
+
+
+def logical_and(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+    lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
+    assert lhs.dtype == ax.Bool and rhs.dtype == ax.Bool, (
+        f"axon.logical_and requires both elements to be of type ax.Bool "
+        f"({lhs.dtype} != {rhs.dtype})")
+    return ax.Tensor(lhs.shape, ax.Bool, prim=prims.LogicalAnd(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
+
+
+def logical_or(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+    lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
+    assert lhs.dtype == ax.Bool and rhs.dtype == ax.Bool, (
+        f"axon.logical_or requires both elements to be of type ax.Bool "
+        f"({lhs.dtype} != {rhs.dtype})")
+    return ax.Tensor(lhs.shape, ax.Bool, prim=prims.LogicalOr(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
+
+
+def logical_not(arg: ax.Tensor) -> ax.Tensor:
+    assert arg.dtype == ax.Bool, (f"axon.logical_not requires the argument to be of type ax.Bool "
+                                  f"({arg.dtype} != ax.Bool)")
+    return ax.Tensor(arg.shape, ax.Bool, prim=prims.LogicalNot(arg), tracer=arg.tracer)
 
 
 def matmul(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:

@@ -170,11 +170,63 @@ class MatMul(BinaryPrimitive):
 
 
 class Maximum(BinaryPrimitive):
-    pass
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        lhs, rhs = self.args
+        lhs_mask = ax.greater_or_equal(lhs, rhs)
+        rhs_mask = ax.logical_not(lhs_mask)
+        lhs_adjoint = ax.multiply(lhs_mask, adjoint)
+        rhs_adjoint = ax.multiply(rhs_mask, adjoint)
+        return lhs_adjoint, rhs_adjoint
 
 
 class Minimum(BinaryPrimitive):
-    pass
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        lhs, rhs = self.args
+        lhs_mask = ax.lesser_or_equal(lhs, rhs)
+        rhs_mask = ax.logical_not(lhs_mask)
+        lhs_adjoint = ax.multiply(lhs_mask, adjoint)
+        rhs_adjoint = ax.multiply(rhs_mask, adjoint)
+        return lhs_adjoint, rhs_adjoint
+
+
+class Greater(BinaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return tuple(map(lambda a: ax.zeros_like(a), self.args))
+
+
+class Lesser(BinaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return tuple(map(lambda a: ax.zeros_like(a), self.args))
+
+
+class Equal(BinaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return tuple(map(lambda a: ax.zeros_like(a), self.args))
+
+
+class GreaterOrEqual(BinaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return tuple(map(lambda a: ax.zeros_like(a), self.args))
+
+
+class LesserOrEqual(BinaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return tuple(map(lambda a: ax.zeros_like(a), self.args))
+
+
+class LogicalNot(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return tuple(map(lambda a: ax.zeros_like(a), self.args))
+
+
+class LogicalAnd(BinaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return tuple(map(lambda a: ax.zeros_like(a), self.args))
+
+
+class LogicalOr(BinaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return tuple(map(lambda a: ax.zeros_like(a), self.args))
 
 
 class Concatenate(Primitive):

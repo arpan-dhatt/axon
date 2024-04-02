@@ -22,7 +22,7 @@ class MLP:
 def loss_fn(params, x):
     zero = ax.scalar(0, dtype=ax.Float16)
     for w, b in params:
-        x = ((x @ w) + b)
+        x = ((x @ w) + b).maximum(zero)
     return x.mean().squeeze()
 
 

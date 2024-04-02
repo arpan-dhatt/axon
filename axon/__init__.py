@@ -14,6 +14,10 @@ from axon.ops import reshape, permute_dims, matrix_transpose, array_slice, expan
 from axon.ops import reduce_sum, product, mean, reduce_min, reduce_max
 # binary
 from axon.ops import add, subtract, multiply, divide, maximum, minimum, matmul
+# binary masking
+from axon.ops import greater, greater_or_equal, equal, lesser, lesser_or_equal
+# logical bool ops
+from axon.ops import logical_or, logical_and, logical_not
 # n-ary
 from axon.ops import concat, stack
 # debugging

@@ -56,6 +56,30 @@ class Tensor:
     def __matmul__(self, other):
         return ax.matmul(self, other)
 
+    def __gt__(self, other):
+        return ax.greater(self, other)
+
+    def __lt__(self, other):
+        return ax.lesser(self, other)
+
+    def __eq__(self, other):
+        return ax.equal(self, other)
+
+    def __ge__(self, other):
+        return ax.greater_or_equal(self, other)
+
+    def __le__(self, other):
+        return ax.lesser_or_equal(self, other)
+
+    def __and__(self, other):
+        return ax.logical_and(self, other)
+
+    def __or__(self, other):
+        return ax.logical_or(self, other)
+
+    def __invert__(self):
+        return ax.logical_not(self)
+
     def cast(self, dtype: DType) -> 'Tensor':
         return ax.cast(self, dtype)
 
@@ -108,3 +132,6 @@ class Tensor:
 
     def __getitem__(self, indices):
         return ax.array_slice(self, indices)
+
+    def __hash__(self):
+        return super().__hash__()
