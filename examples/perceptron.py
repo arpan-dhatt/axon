@@ -31,5 +31,5 @@ if __name__ == "__main__":
     x = ax.Tensor((128, 64), dtype=ax.Float16)
     out = net(x)
 
-    grads = ax.grad(loss_fn)(net.layers, x)
-    ax.print_graph({"grads": grads})
+    loss, grads = ax.value_and_grad(loss_fn)(net.layers, x)
+    ax.print_graph({"loss": loss, "grads": grads})
