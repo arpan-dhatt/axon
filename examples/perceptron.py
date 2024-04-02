@@ -13,16 +13,14 @@ class MLP:
             self.layers.append((w, b))
 
     def __call__(self, x: ax.Tensor):
-        zero = ax.scalar(0, dtype=ax.Float16)
         for w, b in self.layers:
-            x = ((x @ w) + b).maximum(zero)
+            x = ((x @ w) + b).maximum(0)
         return x
 
 
 def loss_fn(params, x):
-    zero = ax.scalar(0, dtype=ax.Float16)
     for w, b in params:
-        x = ((x @ w) + b).maximum(zero)
+        x = ((x @ w) + b).maximum(0)
     return x.mean().squeeze()
 
 

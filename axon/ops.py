@@ -84,7 +84,8 @@ def matrix_transpose(arg: ax.Tensor) -> ax.Tensor:
     return permute_dims(arg, tuple(permutation))
 
 
-def add(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+def add(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) -> ax.Tensor:
+    lhs, rhs = wrap_scalars_helper(lhs, rhs)
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.add requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
@@ -92,21 +93,23 @@ def add(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
 
 
 def subtract(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+    lhs, rhs = wrap_scalars_helper(lhs, rhs)
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.subtract requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
     return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Subtract(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
-def multiply(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+def multiply(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) -> ax.Tensor:
+    lhs, rhs = wrap_scalars_helper(lhs, rhs)
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
-    out_dtype = rhs.dtype if lhs.dtype == ax.Bool else lhs.dtype
-    assert lhs.dtype == rhs.dtype or lhs.dtype == ax.Bool or rhs.dtype == ax.Bool, \
-        f"axon.multiply requires both elements have the same dtype ({lhs.dtype} != {rhs.dtype}) or one be ax.Bool"
-    return ax.Tensor(lhs.shape, out_dtype, prim=prims.Multiply(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
+    assert lhs.dtype == rhs.dtype, (f"axon.multiply requires both elements have the same dtype "
+                                    f"({lhs.dtype} != {rhs.dtype})")
+    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Multiply(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
-def divide(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+def divide(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) -> ax.Tensor:
+    lhs, rhs = wrap_scalars_helper(lhs, rhs)
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.divide requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
@@ -160,56 +163,64 @@ def reduce_min(arg: ax.Tensor, axes: Union[int, Tuple[int, ...], None]) -> ax.Te
     return ax.Tensor(new_shape, arg.dtype, prim=prims.Min(arg, axes), tracer=arg.tracer)
 
 
-def maximum(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+def maximum(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) -> ax.Tensor:
+    lhs, rhs = wrap_scalars_helper(lhs, rhs)
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.maximum requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
     return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Maximum(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
-def minimum(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+def minimum(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) -> ax.Tensor:
+    lhs, rhs = wrap_scalars_helper(lhs, rhs)
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.minimum requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
     return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Minimum(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
-def greater(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+def greater(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) -> ax.Tensor:
+    lhs, rhs = wrap_scalars_helper(lhs, rhs)
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.greater requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
     return ax.Tensor(lhs.shape, ax.Bool, prim=prims.Greater(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
-def lesser(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+def lesser(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) -> ax.Tensor:
+    lhs, rhs = wrap_scalars_helper(lhs, rhs)
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.lesser requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
     return ax.Tensor(lhs.shape, ax.Bool, prim=prims.Lesser(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
-def equal(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+def equal(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) -> ax.Tensor:
+    lhs, rhs = wrap_scalars_helper(lhs, rhs)
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.equal requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
     return ax.Tensor(lhs.shape, ax.Bool, prim=prims.Equal(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
-def greater_or_equal(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+def greater_or_equal(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) -> ax.Tensor:
+    lhs, rhs = wrap_scalars_helper(lhs, rhs)
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.greater_or_equal requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
     return ax.Tensor(lhs.shape, ax.Bool, prim=prims.GreaterOrEqual(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
-def lesser_or_equal(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+def lesser_or_equal(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) -> ax.Tensor:
+    lhs, rhs = wrap_scalars_helper(lhs, rhs)
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == rhs.dtype, (f"axon.lesser_or_equal requires both elements have the same dtype "
                                     f"({lhs.dtype} != {rhs.dtype})")
     return ax.Tensor(lhs.shape, ax.Bool, prim=prims.LesserOrEqual(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
-def logical_and(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+def logical_and(lhs: Union[ax.Tensor, bool], rhs: Union[ax.Tensor, bool]) -> ax.Tensor:
+    lhs, rhs = wrap_scalars_helper(lhs, rhs)
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == ax.Bool and rhs.dtype == ax.Bool, (
         f"axon.logical_and requires both elements to be of type ax.Bool "
@@ -217,7 +228,8 @@ def logical_and(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
     return ax.Tensor(lhs.shape, ax.Bool, prim=prims.LogicalAnd(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
 
 
-def logical_or(lhs: ax.Tensor, rhs: ax.Tensor) -> ax.Tensor:
+def logical_or(lhs: Union[ax.Tensor, bool], rhs: Union[ax.Tensor, bool]) -> ax.Tensor:
+    lhs, rhs = wrap_scalars_helper(lhs, rhs)
     lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
     assert lhs.dtype == ax.Bool and rhs.dtype == ax.Bool, (
         f"axon.logical_or requires both elements to be of type ax.Bool "
@@ -318,6 +330,111 @@ def flatten(arg: ax.Tensor) -> ax.Tensor:
 def squeeze(arg: ax.Tensor) -> ax.Tensor:
     new_shape = tuple([dim for dim in arg.shape if dim != 1])
     return reshape(arg, new_shape)
+
+
+def mask(lhs: ax.Tensor, rhs: Union[ax.Tensor, bool]) -> ax.Tensor:
+    rhs = wrap_scalar(rhs, ax.Bool)
+    lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
+    assert rhs.dtype == ax.Bool, f"The second argument of axon.mask must be of type ax.Bool, but got {rhs.dtype}"
+    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Mask(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
+
+
+def power(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) -> ax.Tensor:
+    lhs, rhs = wrap_scalars_helper(lhs, rhs)
+    lhs, rhs = broadcast(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
+    assert lhs.dtype == rhs.dtype, (f"axon.power requires both elements have the same dtype "
+                                    f"({lhs.dtype} != {rhs.dtype})")
+    return ax.Tensor(lhs.shape, lhs.dtype, prim=prims.Power(lhs, rhs), tracer=any([lhs.tracer, rhs.tracer]))
+
+
+def sqrt(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.Sqrt(arg), tracer=arg.tracer)
+
+
+def sin(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.Sin(arg), tracer=arg.tracer)
+
+
+def arcsin(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.ArcSin(arg), tracer=arg.tracer)
+
+
+def sinh(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.Sinh(arg), tracer=arg.tracer)
+
+
+def arcsinh(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.ArcSinh(arg), tracer=arg.tracer)
+
+
+def cos(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.Cos(arg), tracer=arg.tracer)
+
+
+def arccos(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.ArcCos(arg), tracer=arg.tracer)
+
+
+def cosh(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.Cosh(arg), tracer=arg.tracer)
+
+
+def arccosh(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.ArcCosh(arg), tracer=arg.tracer)
+
+
+def tan(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.Tan(arg), tracer=arg.tracer)
+
+
+def arctan(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.ArcTan(arg), tracer=arg.tracer)
+
+
+def tanh(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.Tanh(arg), tracer=arg.tracer)
+
+
+def arctanh(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.ArcTanh(arg), tracer=arg.tracer)
+
+
+def log(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.Log(arg), tracer=arg.tracer)
+
+
+def wrap_scalars_helper(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) \
+        -> Tuple[ax.Tensor, ax.Tensor]:
+    if isinstance(lhs, ax.Tensor) and isinstance(rhs, ax.Tensor):
+        return lhs, rhs
+    elif isinstance(lhs, ax.Tensor):
+        return lhs, wrap_scalar(rhs, lhs.dtype)
+    elif isinstance(rhs, ax.Tensor):
+        return wrap_scalar(lhs, rhs.dtype), rhs
+    else:
+        raise TypeError(f"At least one operand must be an ax.Tensor")
+
+
+def wrap_scalar(value: Union[ax.Tensor, int, float, bool], intended_dtype: ax.DType) -> ax.Tensor:
+    if isinstance(value, (int, float, bool)):
+        if isinstance(value, int):
+            if intended_dtype in [ax.UInt8, ax.UInt16, ax.UInt32, ax.UInt64, ax.Int8, ax.Int16, ax.Int32, ax.Int64]:
+                return ax.scalar(value, dtype=intended_dtype)
+            elif intended_dtype in [ax.BFloat16, ax.Float16, ax.Float32, ax.Float64]:
+                return ax.scalar(float(value), dtype=intended_dtype)
+            elif intended_dtype == ax.Bool:
+                return ax.scalar(bool(value), dtype=ax.Bool)
+        elif isinstance(value, float):
+            if intended_dtype in [ax.Float32, ax.Float64]:
+                return ax.scalar(value, dtype=intended_dtype)
+        elif isinstance(value, bool):
+            if intended_dtype == ax.Bool:
+                return ax.scalar(value, dtype=ax.Bool)
+        raise TypeError(f"Incompatible data types: {type(value).__name__} and {intended_dtype}")
+    elif isinstance(value, ax.Tensor):
+        return value
+    else:
+        raise TypeError(f"Unsupported type for scalar wrapping: {type(value).__name__}")
 
 
 def print_graph(tree):

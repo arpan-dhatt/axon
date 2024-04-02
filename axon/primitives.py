@@ -174,8 +174,8 @@ class Maximum(BinaryPrimitive):
         lhs, rhs = self.args
         lhs_mask = ax.greater_or_equal(lhs, rhs)
         rhs_mask = ax.logical_not(lhs_mask)
-        lhs_adjoint = ax.multiply(lhs_mask, adjoint)
-        rhs_adjoint = ax.multiply(rhs_mask, adjoint)
+        lhs_adjoint = ax.mask(adjoint, lhs_mask)
+        rhs_adjoint = ax.mask(adjoint, rhs_mask)
         return lhs_adjoint, rhs_adjoint
 
 
@@ -184,8 +184,8 @@ class Minimum(BinaryPrimitive):
         lhs, rhs = self.args
         lhs_mask = ax.lesser_or_equal(lhs, rhs)
         rhs_mask = ax.logical_not(lhs_mask)
-        lhs_adjoint = ax.multiply(lhs_mask, adjoint)
-        rhs_adjoint = ax.multiply(rhs_mask, adjoint)
+        lhs_adjoint = ax.mask(adjoint, lhs_mask)
+        rhs_adjoint = ax.mask(adjoint, rhs_mask)
         return lhs_adjoint, rhs_adjoint
 
 
@@ -229,15 +229,16 @@ class LogicalOr(BinaryPrimitive):
         return tuple(map(lambda a: ax.zeros_like(a), self.args))
 
 
+def _slice_on_axis(axis, dims, offset, length) -> Tuple[slice | int, ...]:
+    out = [slice(None, None, None) for _ in range(dims)]
+    out[axis] = offset if length == 1 else slice(offset, offset + length, 1)
+    return tuple(out)
+
+
 class Concatenate(Primitive):
     def __init__(self, args: Tuple[ax.Tensor, ...], axis: int):
         super().__init__(args)
         self.axis = axis
-
-    def _slice_on_axis(self, axis, dims, offset, length) -> Tuple[slice | int, ...]:
-        out = [slice(None, None, None) for dim in range(dims)]
-        out[axis] = offset if length == 1 else slice(offset, offset + length, 1)
-        return tuple(out)
 
     def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
         out = []
@@ -245,7 +246,7 @@ class Concatenate(Primitive):
 
         for arg in self.args:
             slice_len = arg.shape[self.axis]
-            indices = self._slice_on_axis(self.axis, len(adjoint.shape), offset, slice_len)
+            indices = _slice_on_axis(self.axis, len(adjoint.shape), offset, slice_len)
             out.append(ax.array_slice(adjoint, indices))
             offset += slice_len
 
@@ -276,3 +277,89 @@ class Slice(UnaryPrimitive):
                 formatted_indices.append(str(index))
 
         return f"Slice<{', '.join(formatted_indices)}>"
+
+
+class Sin(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (adjoint * self.args[0].cos(),)
+
+
+class ArcSin(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (adjoint / (1 - self.args[0] ** 2).sqrt(),)
+
+
+class Sinh(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (adjoint * self.args[0].cosh(),)
+
+
+class ArcSinh(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (adjoint / (1 + self.args[0] ** 2).sqrt(),)
+
+
+class Cos(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (-adjoint * self.args[0].sin(),)
+
+
+class ArcCos(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (-adjoint / (1 - self.args[0] ** 2).sqrt(),)
+
+
+class Cosh(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (adjoint * self.args[0].sinh(),)
+
+
+class ArcCosh(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (adjoint / (self.args[0] ** 2 - 1).sqrt(),)
+
+
+class Tan(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (adjoint / self.args[0].cos() ** 2,)
+
+
+class ArcTan(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (adjoint / (1 + self.args[0] ** 2),)
+
+
+class Tanh(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (adjoint * (1 - self.args[0].tanh() ** 2),)
+
+
+class ArcTanh(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (adjoint / (1 - self.args[0] ** 2),)
+
+
+class Log(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (adjoint / self.args[0],)
+
+
+class Power(BinaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        lhs, rhs = self.args
+        lhs_adjoint = adjoint * rhs * lhs ** (rhs - 1)
+        rhs_adjoint = adjoint * lhs ** rhs * ax.log(lhs)
+        return lhs_adjoint, rhs_adjoint
+
+
+class Sqrt(UnaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (adjoint / (2 * self.args[0].sqrt()),)
+
+
+class Mask(BinaryPrimitive):
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        lhs, rhs = self.args
+        lhs_adjoint = ax.mask(adjoint, rhs)
+        rhs_adjoint = ax.zeros_like(rhs)
+        return lhs_adjoint, rhs_adjoint

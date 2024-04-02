@@ -7,17 +7,21 @@ import axon.utils
 from axon.primitives import Primitive
 
 # unary
-from axon.ops import broadcast, cast, negate, stop_gradient
+from axon.ops import broadcast, cast, negate, stop_gradient, sqrt, log, wrap_scalar
 # manipulation
 from axon.ops import reshape, permute_dims, matrix_transpose, array_slice, expand_dims, flatten, squeeze
 # reduction
 from axon.ops import reduce_sum, product, mean, reduce_min, reduce_max
 # binary
-from axon.ops import add, subtract, multiply, divide, maximum, minimum, matmul
+from axon.ops import add, subtract, multiply, divide, maximum, minimum, matmul, power
 # binary masking
-from axon.ops import greater, greater_or_equal, equal, lesser, lesser_or_equal
+from axon.ops import greater, greater_or_equal, equal, lesser, lesser_or_equal, mask
 # logical bool ops
 from axon.ops import logical_or, logical_and, logical_not
+# trig
+from axon.ops import sin, cos, tan, sinh, cosh, tanh
+# inverse trig
+from axon.ops import arcsin, arccos, arctan, arcsinh, arccosh, arctanh
 # n-ary
 from axon.ops import concat, stack
 # debugging
