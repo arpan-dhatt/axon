@@ -31,6 +31,9 @@ class Cast(UnaryPrimitive):
         super().__init__(arg)
         self.dtype = dtype
 
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (adjoint.cast(self.args[0].dtype),)
+
     def __str__(self) -> str:
         return f"Cast<{self.dtype}>"
 
@@ -84,12 +87,19 @@ class PermuteDims(UnaryPrimitive):
         super().__init__(arg)
         self.dims = dims
 
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        reverse_dims = [0] * len(self.dims)
+        for i, dim in enumerate(self.dims):
+            reverse_dims[dim] = i
+        return (adjoint.permute_dims(tuple(reverse_dims)),)
+
     def __str__(self):
         return f"PermuteDims<{self.dims}>"
 
 
 class Negate(UnaryPrimitive):
-    pass
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        return (-adjoint,)
 
 
 class ReductionPrimitive(UnaryPrimitive):
@@ -171,6 +181,23 @@ class Concatenate(Primitive):
     def __init__(self, args: Tuple[ax.Tensor, ...], axis: int):
         super().__init__(args)
         self.axis = axis
+
+    def _slice_on_axis(self, axis, dims, offset, length) -> Tuple[slice | int, ...]:
+        out = [slice(None, None, None) for dim in range(dims)]
+        out[axis] = offset if length == 1 else slice(offset, offset + length, 1)
+        return tuple(out)
+
+    def backward(self, adjoint: ax.Tensor, argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
+        out = []
+        offset = 0
+
+        for arg in self.args:
+            slice_len = arg.shape[self.axis]
+            indices = self._slice_on_axis(self.axis, len(adjoint.shape), offset, slice_len)
+            out.append(ax.array_slice(adjoint, indices))
+            offset += slice_len
+
+        return tuple(out)
 
     def __str__(self):
         return f"Concatenate<{self.axis}>"

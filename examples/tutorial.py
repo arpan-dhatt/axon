@@ -8,7 +8,7 @@ def linear_fn(params, x):
 
 def loss_fn(params, x, y):
     y_hat = linear_fn(params, x)
-    return (y - y_hat).mean().squeeze()
+    return ((y - y_hat) * (y - y_hat)).mean().squeeze()
 
 
 if __name__ == "__main__":
@@ -20,4 +20,4 @@ if __name__ == "__main__":
 
     loss, grads = ax.value_and_grad(loss_fn)((w, b), x, y)
     print(grads)
-    ax.print_graph({"w": w, "b": b, "loss": loss, "grads": (grads), "x": x, "gt": y})
+    ax.print_graph({"w": w, "b": b, "loss": loss, "grads": grads, "x": x, "gt": y})

@@ -22,11 +22,13 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
             raise NotImplementedError("TODO filling grads with zeros_like")
 
         # perform backward pass along primal trace to track adjoint dependencies
-        # stores the adjoint's primal
         adjoint_dep_mapping: Dict[ax.Tensor, List[ax.Tensor]] = defaultdict(list)
+        # use visited set to ensure deps are double-mapped if there's a fork/join in DAG
+        primal_traversal_visited = set()
 
         def traverse_adjoint(primal_cursor: ax.Tensor):
-            if primal_cursor.prim is not None:
+            if primal_cursor.prim is not None and primal_cursor not in primal_traversal_visited:
+                primal_traversal_visited.add(primal_cursor)
                 # prim args depend on cursor for adjoint trace (reverse of primal trace)
                 for arg in filter(lambda t: t.tracer, primal_cursor.prim.args):
                     adjoint_dep_mapping[arg].append(primal_cursor)
@@ -34,14 +36,20 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
 
         traverse_adjoint(output)
 
+        # remove tracers before continuing
+        for primal, primal_args in adjoint_dep_mapping.items():
+            primal.unset_trace()
+            map(lambda pa: pa.unset_trace(), primal_args)
+
         # recurse from primals using deps, caching completed {primal: adjoints}
         adjoint_mapping: Dict[ax.Tensor, ax.Tensor] = {output: ax.scalar(1, output.dtype)}
         # unset trace here since acc_adjoint won't recalculate this adjoint we've made already
         output.unset_trace()
-        # use incomplete adjoints {primal: {adjoint_dep: adjoint}}
-        incomplete_adjoints: Dict[ax.Tensor, Dict[ax.Tensor, ax.Tensor]] = defaultdict(dict)
-        # prevents running backward multiple times
-        backward_has_run: Dict[ax.Tensor, bool] = defaultdict(bool)
+        # use incomplete adjoints {primal: {adjoint_dep: [adjoints]}}
+        # use list since a primal may be used more than once in the same downstream primal (e.g. add(a, a))
+        incomplete_adjoints: Dict[ax.Tensor, Dict[ax.Tensor, List[ax.Tensor]]] = defaultdict(dict)
+        # prevents running backward multiple times and repeat filling incomplete adjoints
+        backward_has_run: Set[ax.Tensor] = set()
         grads: List[Tuple[str, ax.Tensor]] = []
 
         def acc_adjoint(primal_cursor: ax.Tensor) -> ax.Tensor:
@@ -55,14 +63,12 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
                 # complete adjoint, just return it
                 return adjoint_mapping[primal_cursor]
             else:
-                # unset trace for all primals along the way
-                primal_cursor.unset_trace()
                 # go through all adjoint trace dependencies and run backward
                 for adjoint_dep in adjoint_dep_mapping[primal_cursor]:
                     backward(adjoint_dep)
 
                 # incomplete cache should be filled now
-                adjoint_addends = list(incomplete_adjoints[primal_cursor].values())
+                adjoint_addends = ax.utils.flatten_list(list(incomplete_adjoints[primal_cursor].values()))
                 adjoint = adjoint_addends[0]
                 for addend in adjoint_addends[1:]:
                     adjoint = adjoint + addend
@@ -74,15 +80,19 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
             Runs backward on a tensor's primitive and fills the incomplete adjoints cache
             :param primal_cursor: tensor (with primitive) to run backward
             """
-            if backward_has_run[primal_cursor]:
+            if primal_cursor in backward_has_run:
                 return
+            backward_has_run.add(primal_cursor)
 
             # get (probably incomplete) adjoints of arguments
             adjoint = acc_adjoint(primal_cursor)
             args_adjoints = primal_cursor.prim.backward(adjoint)
 
             for arg, arg_adjoint in zip(primal_cursor.prim.args, args_adjoints):
-                incomplete_adjoints[arg][primal_cursor] = arg_adjoint
+                if primal_cursor in incomplete_adjoints[arg]:
+                    incomplete_adjoints[arg][primal_cursor].append(arg_adjoint)
+                else:
+                    incomplete_adjoints[arg][primal_cursor] = [arg_adjoint]
 
         for key, primal in ax.utils.tree_flatten(traced_arg):
             grads.append((key, acc_adjoint(primal)))

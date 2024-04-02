@@ -81,3 +81,13 @@ def reformat_reduce_axes(shape: Tuple[int, ...], axes: Union[int, Tuple[int, ...
 
 def shaped_size(shape: Sequence[int]) -> int:
     return functools.reduce(lambda acc, e: acc * e, shape, 1)
+
+
+def flatten_list(nested_list):
+    flattened = []
+    for item in nested_list:
+        if isinstance(item, list):
+            flattened.extend(flatten_list(item))
+        else:
+            flattened.append(item)
+    return flattened
