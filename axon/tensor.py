@@ -29,23 +29,6 @@ class Tensor:
         self.sibling_ix = sibling_ix
         self.tracer = tracer
 
-    @staticmethod
-    def scalar(value: Union[int, float, bool], dtype: DType = None) -> 'Tensor':
-        if dtype is None:
-            if isinstance(value, int):
-                dtype = ax.Int32
-            elif isinstance(value, float):
-                dtype = ax.Float32
-            elif isinstance(value, bool):
-                dtype = ax.Bool
-            else:
-                raise ValueError("Scalar can only be implicitly initialized value int, float, or bool")
-        return Tensor((), dtype, data=value)
-
-    @staticmethod
-    def zeros_like(arg: 'Tensor') -> 'Tensor':
-        return ax.Tensor(arg.shape, arg.dtype)
-
     def __add__(self, rhs):
         return ax.add(self, rhs)
 

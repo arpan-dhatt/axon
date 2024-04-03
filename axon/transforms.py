@@ -1,6 +1,8 @@
 from collections import defaultdict
 from typing import *
 
+# not used here but re-exported into this utils module
+# noinspection PyUnresolvedReferences
 from axon.tree_utils import tree_map, tree_flatten
 import axon as ax
 

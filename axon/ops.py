@@ -91,6 +91,35 @@ def matrix_transpose(arg: ax.Tensor) -> ax.Tensor:
     return permute_dims(arg, tuple(permutation))
 
 
+def scalar(value: Union[int, float, bool], dtype: DType = None) -> ax.Tensor:
+    if dtype is None:
+        if isinstance(value, int):
+            dtype = ax.Int32
+        elif isinstance(value, float):
+            dtype = ax.Float32
+        elif isinstance(value, bool):
+            dtype = ax.Bool
+        else:
+            raise ValueError("Scalar can only be implicitly initialized value int, float, or bool")
+    return ax.Tensor((), dtype, data=value)
+
+
+def fill(value: Union[int, float, bool], shape: Sequence[int], dtype: DType = None):
+    return broadcast(scalar(value, dtype), shape)
+
+
+def zeros_like(arg: ax.Tensor) -> ax.Tensor:
+    return fill_like(arg, 0)
+
+
+def ones_like(arg: ax.Tensor) -> ax.Tensor:
+    return fill_like(arg, 1)
+
+
+def fill_like(arg: ax.Tensor, value: Union[int, float, bool]) -> ax.Tensor:
+    return fill(value, arg.shape, arg.dtype)
+
+
 def add(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) -> ax.Tensor:
     lhs, rhs = wrap_scalars_helper(lhs, rhs)
     lhs, rhs = broadcast_pair(lhs, rhs, semantics=utils.BroadcastSemantics.Elementwise)
@@ -148,7 +177,7 @@ def product(arg: ax.Tensor, axes: Union[int, Sequence[int], None] = None) -> ax.
 def mean(arg: ax.Tensor, axes: Union[int, Sequence[int], None] = None) -> ax.Tensor:
     axes = utils.reformat_reduce_axes(arg.shape, axes)
     summed = reduce_sum(arg, axes)
-    return summed / ax.Tensor.scalar(
+    return summed / scalar(
         utils.shaped_size([l for dim, l in enumerate(arg.shape) if (dim in axes)]), arg.dtype)
 
 

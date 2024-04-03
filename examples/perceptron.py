@@ -8,8 +8,8 @@ class MLP:
         self.layers = []
         for i, layer in enumerate(layers):
             if i == len(layers) - 1: break
-            w, b = (ax.Tensor((layer, layers[i + 1]), ax.Float16),
-                    ax.Tensor((layers[i + 1],), ax.Float16))
+            w, b = (ax.fill(0, (layer, layers[i + 1]), ax.Float16),
+                    ax.fill(0, (layers[i + 1],), ax.Float16))
             self.layers.append((w, b))
 
     def __call__(self, x: ax.Tensor):
