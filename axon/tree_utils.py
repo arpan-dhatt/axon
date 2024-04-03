@@ -28,9 +28,9 @@ def tree_map(fn, tree, *rest, is_leaf=None):
         model.update(tree_map(lambda x: x*x, model.parameters()))
 
     Args:
-        fn (Callable): The function that processes the leaves of the tree
-        tree (Any): The main python tree that will be iterated upon
-        rest (Tuple[Any]): Extra trees to be iterated together with tree
+        fn (Callable): The function that processes the leaves of the tree.
+        tree (Any): The main python tree that will be iterated upon.
+        rest (Tuple[Any]): Extra trees to be iterated together with tree.
         is_leaf (Optional[Callable]): An optional callable that returns True if
             the passed object is considered a leaf or False otherwise.
 
@@ -40,8 +40,8 @@ def tree_map(fn, tree, *rest, is_leaf=None):
     if is_leaf is not None and is_leaf(tree):
         return fn(tree, *rest)
     elif isinstance(tree, (list, tuple)):
-        TreeType = type(tree)
-        return TreeType(
+        tree_type = type(tree)
+        return tree_type(
             tree_map(fn, child, *(r[i] for r in rest), is_leaf=is_leaf)
             for i, child in enumerate(tree)
         )

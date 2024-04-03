@@ -18,7 +18,9 @@ class Tensor:
     tracer: bool = False
 
     def __init__(self, shape: Tuple[int, ...], dtype: DType, data=None, prim: Optional['ax.Primitive'] = None,
-                 siblings: List['Tensor'] = [], sibling_ix: int = -1, tracer: bool = False):
+                 siblings=None, sibling_ix: int = -1, tracer: bool = False):
+        if siblings is None:
+            siblings = []
         self.shape = shape
         self.dtype = dtype
         self.data = data
