@@ -1,6 +1,8 @@
 from typing import *
 
 import axon as ax
+import numpy as np
+from numpy_backend import NumpyBackend
 
 
 class MLP:
@@ -8,8 +10,8 @@ class MLP:
         self.layers = []
         for i, layer in enumerate(layers):
             if i == len(layers) - 1: break
-            w, b = (ax.fill(0, (layer, layers[i + 1]), ax.Float16),
-                    ax.fill(0, (layers[i + 1],), ax.Float16))
+            w, b = (ax.fill(1, (layer, layers[i + 1]), ax.Float32),
+                    ax.fill(0, (layers[i + 1],), ax.Float32))
             self.layers.append((w, b))
 
     def __call__(self, x: ax.Tensor):
@@ -25,9 +27,14 @@ def loss_fn(params, x):
 
 
 if __name__ == "__main__":
+    bknd = NumpyBackend()
+
     net = MLP([64, 32, 16, 10])
-    x = ax.Tensor((128, 64), dtype=ax.Float16)
+    x = ax.fill(1, (128, 64), dtype=ax.Float32)
     out = net(x)
+    ax.print_graph(out)
+    ax.eval(out, bknd)
+    print(out.data)
 
     loss, grads = ax.value_and_grad(loss_fn)(net.layers, x)
     ax.print_graph({"loss": loss, "grads": grads})

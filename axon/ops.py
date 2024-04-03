@@ -327,7 +327,6 @@ def split(arg: ax.Tensor, indices_or_sections: Union[int, Sequence[int]], axis: 
                                       tracer=arg.tracer))
     else:
         indices = indices_or_sections
-        assert len(indices) > 0, "split requires at least one index to split at"
         indices = list(sorted(indices))
         assert all(
             map(lambda aix: 0 < aix < arg.shape[axis], indices)), f"invalid indices {indices} chosen for splitting"

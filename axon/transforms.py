@@ -120,3 +120,7 @@ def grad(fn: Callable, argnum: int = 0) -> callable:
         return value_and_grad(fn, argnum)(*args, **kwargs)[1]
 
     return grad_fn
+
+
+def eval(tree, backend: 'ax.Backend'):
+    return backend.eval(ax.utils.tree_flatten(tree))

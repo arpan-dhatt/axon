@@ -265,6 +265,9 @@ class Split(UnaryPrimitive):
             -> Tuple[ax.Tensor, ...]:
         return (ax.concat(adjoints, self.axis),)
 
+    def __str__(self):
+        return f"Split<{self.indices_or_sections}, {self.axis}>"
+
 
 class Slice(UnaryPrimitive):
     def __init__(self, arg: ax.Tensor, indices: Tuple[Union[slice, int], ...]):
