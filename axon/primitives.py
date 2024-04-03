@@ -113,7 +113,7 @@ class ReductionPrimitive(UnaryPrimitive):
 
 class Sum(ReductionPrimitive):
     def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
-        return (ax.broadcast(self.args[0], adjoints[0])[1],)
+        return (ax.broadcast(adjoints[0], self.args[0].shape),)
 
     pass
 
@@ -241,7 +241,6 @@ class Concatenate(Primitive):
         self.axis = axis
 
     def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
-        out = []
         offset = 0
 
         indices = []

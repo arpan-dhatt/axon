@@ -1,6 +1,6 @@
-from typing import *
-from enum import Enum
 import functools
+from enum import Enum
+from typing import *
 
 from axon.tree_utils import tree_map, tree_flatten, tree_unflatten
 
@@ -10,8 +10,8 @@ class BroadcastSemantics(Enum):
     MatMul = 1
 
 
-def broadcast_shapes(lhs: Tuple[int, ...], rhs: Tuple[int, ...], semantics=BroadcastSemantics.Elementwise) -> Tuple[
-    int, ...]:
+def broadcast_shapes(lhs: Tuple[int, ...], rhs: Tuple[int, ...], semantics=BroadcastSemantics.Elementwise) \
+        -> Tuple[int, ...]:
     if semantics == BroadcastSemantics.Elementwise:
         return elementwise_broadcast(lhs, rhs)
     elif semantics == BroadcastSemantics.MatMul:

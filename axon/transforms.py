@@ -1,5 +1,5 @@
-from typing import *
 from collections import defaultdict
+from typing import *
 
 import axon as ax
 

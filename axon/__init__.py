@@ -13,7 +13,7 @@ from axon.ops import reshape, permute_dims, matrix_transpose, array_slice, expan
 # reduction
 from axon.ops import reduce_sum, product, mean, reduce_min, reduce_max
 # binary
-from axon.ops import add, subtract, multiply, divide, maximum, minimum, matmul, power
+from axon.ops import broadcast_pair, add, subtract, multiply, divide, maximum, minimum, matmul, power
 # binary masking
 from axon.ops import greater, greater_or_equal, equal, lesser, lesser_or_equal, mask
 # logical bool ops
