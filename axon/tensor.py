@@ -12,17 +12,19 @@ class Tensor:
 
     prim: Optional['ax.Primitive']
     # denotes which of N outputs a primitive has since it can have multiple
-    sibling: int
+    siblings: List['Tensor']
+    sibling_ix: int
 
     tracer: bool = False
 
     def __init__(self, shape: Tuple[int, ...], dtype: DType, data=None, prim: Optional['ax.Primitive'] = None,
-                 sibling: int = -1, tracer: bool = False):
+                 siblings: List['Tensor'] = [], sibling_ix: int = -1, tracer: bool = False):
         self.shape = shape
         self.dtype = dtype
         self.data = data
         self.prim = prim
-        self.sibling = sibling
+        self.siblings = siblings
+        self.sibling_ix = sibling_ix
         self.tracer = tracer
 
     @staticmethod

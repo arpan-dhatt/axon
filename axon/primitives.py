@@ -244,13 +244,13 @@ class Concatenate(Primitive):
         out = []
         offset = 0
 
-        for arg in self.args:
-            slice_len = arg.shape[self.axis]
-            indices = _slice_on_axis(self.axis, len(adjoints[0].shape), offset, slice_len)
-            out.append(ax.array_slice(adjoints[0], indices))
-            offset += slice_len
+        indices = []
+        # skip last one since it is implied by split index
+        for arg in self.args[:-1]:
+            offset += arg.shape[self.axis]
+            indices.append(offset)
 
-        return tuple(out)
+        return ax.split(adjoints[0], indices, self.axis)
 
     def __str__(self):
         return f"Concatenate<{self.axis}>"

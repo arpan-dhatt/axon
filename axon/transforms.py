@@ -49,7 +49,7 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
         # use list since a primal's output may be used more than once downstream (e.g. add(a, a))
         incomplete_adjoints: Dict[ax.Tensor, Dict[ax.Tensor, List[ax.Tensor]]] = defaultdict(dict)
         # prevents running backward multiple times and repeat filling incomplete adjoints
-        backward_has_run: Set[ax.Tensor] = set()
+        backward_has_run: Set[ax.Primitive] = set()
         grads: List[Tuple[str, ax.Tensor]] = []
 
         def acc_adjoint(primal_cursor: ax.Tensor) -> ax.Tensor:
@@ -80,14 +80,24 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
             Runs backward on a tensor's primitive and fills the incomplete adjoints cache
             :param primal_cursor: tensor (with primitive) to run backward
             """
-            if primal_cursor in backward_has_run:
+            assert primal_cursor.prim is not None
+            if primal_cursor.prim in backward_has_run:
                 return
-            backward_has_run.add(primal_cursor)
+            backward_has_run.add(primal_cursor.prim)
 
             # get (probably incomplete) adjoints of arguments
-            adjoint = acc_adjoint(primal_cursor)
-            args_adjoints = primal_cursor.prim.backward([adjoint])
+            if len(primal_cursor.siblings) == 0:
+                # no siblings, just add together all adjoints of primals using this primal
+                adjoints = [acc_adjoint(primal_cursor)]
+            else:
+                # require all sibling adjoints in order to run backwards
+                # adjoint_dep_mapping keys are all tensors contributing to final scalar value so any siblings
+                # not in it must have a zero adjoint
+                adjoints = [acc_adjoint(sib) if sib in adjoint_dep_mapping else ax.zeros_like(sib)
+                            for sib in primal_cursor.siblings]
+            args_adjoints = primal_cursor.prim.backward(adjoints)
 
+            # add adjoints calculated from this backward call to cache
             for arg, arg_adjoint in zip(primal_cursor.prim.args, args_adjoints):
                 if primal_cursor in incomplete_adjoints[arg]:
                     incomplete_adjoints[arg][primal_cursor].append(arg_adjoint)

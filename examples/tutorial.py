@@ -11,14 +11,23 @@ def loss_fn(params, x, y):
     return ((y - y_hat) * (y - y_hat)).mean().squeeze()
 
 
+def fold_sum(w):
+    stuff = ax.split(w, 8, 0)
+    summed = stuff[0]
+    for i in range(1, 4):
+        summed = summed + stuff[i]
+    return summed.reduce_sum().squeeze()
+
+
 if __name__ == "__main__":
     w = ax.Tensor((64, 10), ax.Float16)
     b = ax.Tensor((10,), ax.Float16)
 
     x = ax.Tensor((128, 64), ax.Float16)
     y = ax.Tensor((128, 10), ax.Float16)
-    stuff = ax.split(w, 8, 0)
-    ax.print_graph(stuff)
+
+    loss, grads = ax.value_and_grad(fold_sum)(w)
+    ax.print_graph({"w": w, "loss": loss, "grads": grads})
 
     loss, grads = ax.value_and_grad(loss_fn)((w, b), x, y)
     print(grads)

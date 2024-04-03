@@ -1,4 +1,5 @@
 from typing import *
+import copy
 
 import axon as ax
 import axon.primitives as prims
@@ -275,7 +276,7 @@ def split(arg: ax.Tensor, indices_or_sections: Union[int, Sequence[int]], axis: 
     assert normalized_axis < len(arg.shape), f"invalid axis ({axis}) chosen to split tensor of shape {arg.shape}"
     axis = normalized_axis
 
-    outputs = []
+    siblings = []
     if isinstance(indices_or_sections, int):
         # splits into N sections if possible
         sections = indices_or_sections
@@ -283,26 +284,33 @@ def split(arg: ax.Tensor, indices_or_sections: Union[int, Sequence[int]], axis: 
             raise AssertionError(f"Cannot split array of shape {arg.shape} into {sections} "
                                  f"equal sections on axis {axis}")
         outputs_shape = tuple([s // sections if i == axis else s for i, s in enumerate(arg.shape)])
+        prim = prims.Split(arg, sections, axis)
         for i, sect in enumerate(range(sections)):
-            outputs.append(ax.Tensor(outputs_shape, dtype=arg.dtype, prim=prims.Split(arg, sections, axis), sibling=i,
-                                     tracer=arg.tracer))
+            siblings.append(ax.Tensor(outputs_shape, dtype=arg.dtype, prim=prim, siblings=siblings, sibling_ix=i,
+                                      tracer=arg.tracer))
     else:
         indices = indices_or_sections
         assert len(indices) > 0, "split requires at least one index to split at"
         indices = list(sorted(indices))
         assert all(
             map(lambda ix: 0 < ix < arg.shape[axis], indices)), f"invalid indices {indices} chosen for splitting"
-        for i, ix in enumerate(indices)[1:]:
+        for i, ix in enumerate(indices):
+            if i == 0:
+                continue
             if ix == indices[i - 1]:
                 raise AssertionError("All splitting indices must be unique")
 
+        prim = prims.Split(arg, tuple(indices), axis)
+        # indices now denotes start of each split
+        indices.insert(0, 0)
         for i, ix in enumerate(indices):
             slice_len = (indices[i + 1] if i < len(indices) - 1 else arg.shape[axis]) - ix
             output_shape = tuple([slice_len if i == axis else s for i, s in enumerate(arg.shape)])
-            outputs.append(ax.Tensor(output_shape, dtype=arg.dtype, prim=prims.Split(arg, tuple(indices), axis),
-                                     sibling=i, tracer=arg.tracer))
+            siblings.append(
+                ax.Tensor(output_shape, dtype=arg.dtype, prim=prim, siblings=siblings, sibling_ix=i, tracer=arg.tracer))
 
-    return tuple(outputs)
+    # copies siblings so siblings isn't modified outside this function
+    return tuple(siblings)
 
 
 def array_slice(arg: ax.Tensor, indices: Union[int, slice, Sequence[Union[int, slice]]]) -> ax.Tensor:
@@ -498,8 +506,8 @@ def print_graph(tree):
             print(f"{str(cursor.prim)}(", end="")
             print(", ".join(map(lambda t: f"{visited[t]}", cursor.prim.args)), end="")
             print(")", end="")
-            if cursor.sibling >= 0:
-                print(f"[{cursor.sibling}]")
+            if cursor.sibling_ix >= 0:
+                print(f"[{cursor.sibling_ix}]")
             else:
                 print()
         else:
