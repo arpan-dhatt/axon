@@ -11,14 +11,18 @@ class Tensor:
     data: Any
 
     prim: Optional['ax.Primitive']
+    # denotes which of N outputs a primitive has since it can have multiple
+    sibling: int
 
     tracer: bool = False
 
-    def __init__(self, shape: Tuple[int, ...], dtype: DType, data=None, prim=None, tracer=False):
+    def __init__(self, shape: Tuple[int, ...], dtype: DType, data=None, prim: Optional['ax.Primitive'] = None,
+                 sibling: int = -1, tracer: bool = False):
         self.shape = shape
         self.dtype = dtype
         self.data = data
         self.prim = prim
+        self.sibling = sibling
         self.tracer = tracer
 
     @staticmethod

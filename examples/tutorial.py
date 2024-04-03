@@ -17,6 +17,8 @@ if __name__ == "__main__":
 
     x = ax.Tensor((128, 64), ax.Float16)
     y = ax.Tensor((128, 10), ax.Float16)
+    stuff = ax.split(w, 8, 0)
+    ax.print_graph(stuff)
 
     loss, grads = ax.value_and_grad(loss_fn)((w, b), x, y)
     print(grads)

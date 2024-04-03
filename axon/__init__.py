@@ -9,7 +9,7 @@ from axon.primitives import Primitive
 # unary
 from axon.ops import broadcast, cast, negate, stop_gradient, sqrt, log, wrap_scalar
 # manipulation
-from axon.ops import reshape, permute_dims, matrix_transpose, array_slice, expand_dims, flatten, squeeze
+from axon.ops import reshape, permute_dims, matrix_transpose, array_slice, expand_dims, flatten, squeeze, split
 # reduction
 from axon.ops import reduce_sum, product, mean, reduce_min, reduce_max
 # binary

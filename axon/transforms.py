@@ -86,7 +86,7 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
 
             # get (probably incomplete) adjoints of arguments
             adjoint = acc_adjoint(primal_cursor)
-            args_adjoints = primal_cursor.prim.backward(adjoint)
+            args_adjoints = primal_cursor.prim.backward([adjoint])
 
             for arg, arg_adjoint in zip(primal_cursor.prim.args, args_adjoints):
                 if primal_cursor in incomplete_adjoints[arg]:
