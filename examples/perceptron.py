@@ -29,12 +29,21 @@ def loss_fn(params, x):
 if __name__ == "__main__":
     bknd = NumpyBackend()
 
-    net = MLP([64, 32, 16, 10])
-    x = ax.fill(1, (128, 64), dtype=ax.Float32)
+    import time
+    net = MLP([512] * 80)
+    x = ax.fill(1, (128, 512), dtype=ax.Float32)
+    input()
+
+    tick = time.time()
     out = net(x)
-    ax.print_graph(out)
+    print("fwddef", time.time() - tick)
+    # ax.print_graph(out)
+    tick = time.time()
     ax.eval(out, bknd)
+    print("fwdrun", time.time() - tick)
     print(out.data)
 
+    tick = time.time()
     loss, grads = ax.value_and_grad(loss_fn)(net.layers, x)
-    ax.print_graph({"loss": loss, "grads": grads})
+    print("vgrun", time.time() - tick)
+    # ax.print_graph({"loss": loss, "grads": grads})
