@@ -59,6 +59,10 @@ class NumpyBackend(ax.Backend):
         method = self.eval_registry[type(prim).__name__]
         method(prim, outputs)
 
+    def impl_StopGradient(self, prim: ax.primitives.StopGradient, outputs: List[ax.Tensor]):
+        for output, arg in zip(outputs, prim.args):
+            output.data = arg.data
+
     def impl_Add(self, prim: ax.primitives.Add, outputs: List[ax.Tensor]):
         outputs[0].data = np.add(prim.args[0].data, prim.args[1].data)
 

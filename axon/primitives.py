@@ -75,9 +75,6 @@ class Broadcast(UnaryPrimitive):
 
 
 class StopGradient(UnaryPrimitive):
-    def __init__(self, arg: ax.Tensor):
-        super().__init__(arg)
-
     def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) -> Tuple[ax.Tensor, ...]:
         return (ax.zeros_like(self.args[0]),)
 

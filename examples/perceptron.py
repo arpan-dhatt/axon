@@ -23,16 +23,15 @@ class MLP:
 def loss_fn(params, x):
     for w, b in params:
         x = ((x @ w) + b).maximum(0)
-    return x.mean().squeeze()
+    return ax.stop_gradient(x).mean().squeeze()
 
 
 if __name__ == "__main__":
     bknd = NumpyBackend()
 
     import time
-    net = MLP([512] * 80)
-    x = ax.fill(1, (128, 512), dtype=ax.Float32)
-    input()
+    net = MLP([32] * 2)
+    x = ax.fill(1, (128, 32), dtype=ax.Float32)
 
     tick = time.time()
     out = net(x)
@@ -46,4 +45,6 @@ if __name__ == "__main__":
     tick = time.time()
     loss, grads = ax.value_and_grad(loss_fn)(net.layers, x)
     print("vgrun", time.time() - tick)
-    # ax.print_graph({"loss": loss, "grads": grads})
+    ax.print_graph({"loss": loss, "grads": grads})
+    ax.eval(grads, bknd)
+    print(grads[-1][-1].data)
