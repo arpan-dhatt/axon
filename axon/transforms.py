@@ -1,6 +1,5 @@
 from collections import defaultdict
 from typing import *
-import functools
 
 # not used here but re-exported into this utils module
 # noinspection PyUnresolvedReferences
