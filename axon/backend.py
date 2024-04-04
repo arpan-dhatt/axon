@@ -7,5 +7,5 @@ import axon as ax
 class Backend(ABC):
 
     @abstractmethod
-    def eval(self, tensors: List[Tuple[str, ax.Tensor]]):
+    def eval(self, tensors: List[Tuple[str, ax.Tensor]], **kwargs):
         pass

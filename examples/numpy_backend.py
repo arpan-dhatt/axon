@@ -36,7 +36,11 @@ class NumpyBackend(ax.Backend):
             ax.Float64: np.float64,
         }
 
-    def eval_tensor(self, tensor: ax.Tensor):
+    def eval(self, tensors: List[Tuple[str, ax.Tensor]], retain_graph=False):
+        for name, tensor in tensors:
+            self.eval_tensor(tensor, retain_graph)
+
+    def eval_tensor(self, tensor: ax.Tensor, retain_graph = False):
         if isinstance(tensor.data, (int, float, bool)):
             # promote existing scalar to typed array
             try:
@@ -54,6 +58,9 @@ class NumpyBackend(ax.Backend):
             for arg in tensor.prim.args:
                 self.eval_tensor(arg)
             self.run_primitive(tensor.prim, [tensor] if len(tensor.siblings) == 0 else tensor.siblings)
+            # can drop graph if we're done computing
+            if not retain_graph:
+                tensor.prim = None
 
     def run_primitive(self, prim: ax.Primitive, outputs: List[ax.Tensor]):
         method = self.eval_registry[type(prim).__name__]
@@ -202,9 +209,6 @@ class NumpyBackend(ax.Backend):
     def impl_Mask(self, prim: ax.primitives.Mask, outputs: List[ax.Tensor]):
         outputs[0].data = np.where(prim.args[1].data, prim.args[0].data, np.zeros_like(prim.args[0].data))
 
-    def eval(self, tensors: List[Tuple[str, ax.Tensor]]):
-        for name, tensor in tensors:
-            self.eval_tensor(tensor)
 
 
 if __name__ == "__main__":

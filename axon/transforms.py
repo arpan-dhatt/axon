@@ -143,5 +143,5 @@ def grad(fn: Callable, argnum: int = 0) -> callable:
     return grad_fn
 
 
-def eval(tree, backend: 'ax.Backend'):
-    return backend.eval(ax.utils.tree_flatten(tree))
+def eval(tree, backend: 'ax.Backend', **kwargs):
+    return backend.eval(ax.utils.tree_flatten(tree), **kwargs)
