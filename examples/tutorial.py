@@ -7,16 +7,10 @@ def linear_fn(params, x):
 
 
 def loss_fn(params, x, y):
-    y_hat = ax.stop_gradient(linear_fn(params, x))
+    y_hat = linear_fn(params, x)
+    y_hat = ax.stop_gradient(y_hat + y_hat)
+    y_hat = y_hat + y_hat
     return ((y - y_hat) * (y - y_hat)).mean().squeeze()
-
-
-def fold_sum(w):
-    stuff = ax.split(w, 8, 0)
-    summed = stuff[0]
-    for i in range(1, 4):
-        summed = summed + stuff[i]
-    return ax.stop_gradient(summed.reduce_sum().squeeze())
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 from collections import defaultdict
 from typing import *
+import functools
 
 # not used here but re-exported into this utils module
 # noinspection PyUnresolvedReferences
@@ -45,12 +46,13 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
             map(lambda pa: pa.unset_trace(), primal_args)
 
         # recurse from primals using deps, caching completed {primal: adjoints}
-        adjoint_mapping: Dict[ax.Tensor, ax.Tensor] = {output: ax.scalar(1, output.dtype)}
+        # any adjoints can be None due to StopGradient
+        adjoint_mapping: Dict[ax.Tensor, Optional[ax.Tensor]] = {output: ax.scalar(1, output.dtype)}
         # unset trace here since acc_adjoint won't recalculate this adjoint we've made already
         output.unset_trace()
         # use incomplete adjoints {primal: {adjoint_dep: [adjoints]}}
         # use list since a primal's output may be used more than once downstream (e.g. add(a, a))
-        incomplete_adjoints: Dict[ax.Tensor, Dict[ax.Tensor, List[ax.Tensor]]] = defaultdict(dict)
+        incomplete_adjoints: Dict[ax.Tensor, Dict[ax.Tensor, List[Optional[ax.Tensor]]]] = defaultdict(dict)
         # prevents running backward multiple times and repeat filling incomplete adjoints
         backward_has_run: Set[ax.Primitive] = set()
         grads: List[Tuple[str, ax.Tensor]] = []
@@ -72,9 +74,14 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
 
                 # incomplete cache should be filled now
                 adjoint_addends = ax.utils.flatten_list(list(incomplete_adjoints[primal_cursor].values()))
-                adjoint = adjoint_addends[0]
-                for addend in adjoint_addends[1:]:
-                    adjoint = adjoint + addend
+                adjoint = None
+                for addend in adjoint_addends:
+                    if addend is None:
+                        continue
+                    elif adjoint is None:
+                        adjoint = addend
+                    else:
+                        adjoint = adjoint + addend
                 adjoint_mapping[primal_cursor] = adjoint
                 return adjoint
 
@@ -98,7 +105,18 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
                 # not in it must have a zero adjoint
                 adjoints = [acc_adjoint(sib) if sib in adjoint_dep_mapping else ax.zeros_like(sib)
                             for sib in primal_cursor.siblings]
-            args_adjoints = primal_cursor.prim.backward(adjoints)
+
+            if all(map(lambda adj: adj is None, adjoints)):
+                # all adjoints are None, so we can skip backward and just return none to args
+                args_adjoints = [None] * len(primal_cursor.prim.args)
+            else:
+                if len(adjoints) > 1:
+                    # some of the adjoints are None, so fill any None's with zero matrices before running backward
+                    # therefore we have some siblings with no gradient but others do
+                    adjoints = [adj if adj is not None else ax.zeros_like(primal_cursor.siblings[i])
+                                for i, adj in enumerate(adjoints)]
+                # if there's only one adjoint it's definitely not None and it's ok
+                args_adjoints = primal_cursor.prim.backward(adjoints)
 
             # add adjoints calculated from this backward call to cache
             for arg, arg_adjoint in zip(primal_cursor.prim.args, args_adjoints):
@@ -108,7 +126,11 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
                     incomplete_adjoints[arg][primal_cursor] = [arg_adjoint]
 
         for key, primal in ax.utils.tree_flatten(traced_arg):
-            grads.append((key, acc_adjoint(primal)))
+            accumulated = acc_adjoint(primal)
+            if accumulated is None:
+                # replace any None gradients with zeros now
+                accumulated = ax.zeros_like(primal)
+            grads.append((key, accumulated))
 
         return outputs, ax.utils.tree_unflatten(grads)
 
