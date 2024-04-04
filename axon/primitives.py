@@ -84,6 +84,23 @@ class StopGradient(UnaryPrimitive):
         return (None,)
 
 
+class CustomGradient(Primitive):
+    def __init__(self, args: Tuple[ax.Tensor, ...],
+                 grad_fn=Callable[[List[ax.Tensor], Optional[Tuple[int, ...]]], Tuple[Optional[ax.Tensor], ...]],
+                 **kwargs):
+        super().__init__(args)
+        self.grad_fn = grad_fn
+        self.kwargs = kwargs
+
+    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+            -> Tuple[Optional[ax.Tensor], ...]:
+        grads = self.grad_fn(adjoints, argnums, **self.kwargs)
+        for arg, grad in zip(self.args, grads):
+            assert grad is None or (arg.shape == grad.shape and arg.dtype == grad.dtype), \
+                "Custom gradient function must output grads with same shape and dtype as original args"
+        return tuple(grads)
+
+
 class PermuteDims(UnaryPrimitive):
     def __init__(self, arg: ax.Tensor, dims: Tuple[int, ...]):
         super().__init__(arg)
@@ -283,7 +300,7 @@ class Split(UnaryPrimitive):
         self.axis = axis
 
     def backward(self, adjoints: Sequence[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
-           -> Tuple[Optional[ax.Tensor], ...]:
+            -> Tuple[Optional[ax.Tensor], ...]:
         return (ax.concat(adjoints, self.axis),)
 
     def __str__(self):

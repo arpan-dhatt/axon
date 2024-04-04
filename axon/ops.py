@@ -48,6 +48,25 @@ def stop_gradient(arg: ax.Tensor) -> ax.Tensor:
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.StopGradient(arg), tracer=arg.tracer)
 
 
+def custom_gradient(args: Sequence[ax.Tensor], forward_fn: Callable[..., Tuple[ax.Tensor, ...]],
+                    grad_fn: Callable[[List[ax.Tensor], Optional[Tuple[int, ...]]], Tuple[Optional[ax.Tensor], ...]],
+                    **kwargs) -> Tuple[ax.Tensor, ...]:
+    outputs = forward_fn(*args, **kwargs)
+    assert isinstance(outputs, tuple), "signature of forward_fn must be Callable[..., Tuple[ax.Tensor, ...]]"
+    outputs = [stop_gradient(out) for out in outputs]
+    prim = prims.CustomGradient(tuple(args), grad_fn, **kwargs)
+    if len(outputs) > 1:
+        # need to create outputs with sibling relationships
+        siblings = []
+        for i, output in outputs:
+            siblings.append(
+                ax.Tensor(output.shape, output.dtype, prim=prim, siblings=siblings, sibling_ix=i, tracer=output.tracer))
+    else:
+        # just set CustomGradient primitive with no siblings
+        outputs[0] = ax.Tensor(outputs[0].shape, outputs[0].dtype, prim=prim, tracer=outputs[0].tracer)
+    return tuple(outputs)
+
+
 def reshape(arg: ax.Tensor, shape: Union[int, Sequence[int]]) -> ax.Tensor:
     if isinstance(shape, int):
         shape = (shape,)

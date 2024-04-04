@@ -25,7 +25,6 @@ def loss_fn(params, x):
         x = ((x @ w) + b).maximum(0)
     return ax.stop_gradient(x).mean().squeeze()
 
-
 if __name__ == "__main__":
     bknd = NumpyBackend()
 

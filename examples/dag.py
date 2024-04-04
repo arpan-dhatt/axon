@@ -1,15 +1,26 @@
+from typing import *
+
 import axon as ax
 from numpy_backend import NumpyBackend
+
 
 def fn(params):
     a, b = params
     return (a * b).reduce_sum().squeeze()
 
 
+def ones_backward(input: ax.Tensor):
+    def one_grad(adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) -> Tuple[
+        Optional[ax.Tensor], ...]:
+        return (ax.fill_like(input, 24.0),)
+
+    return ax.custom_gradient((input,), lambda t: (ax.negate(input),), one_grad)
+
+
 def fn2(params):
     a, b = params
     c = ax.scalar(1.0, ax.Float16)
-    return ax.concat((a,a,a), 0).reduce_sum().squeeze()
+    return ones_backward(ax.concat((a, b), 0))[0].reduce_sum().squeeze()
 
 
 if __name__ == "__main__":
