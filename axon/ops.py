@@ -501,6 +501,10 @@ def log(arg: ax.Tensor) -> ax.Tensor:
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Log(arg), tracer=arg.tracer)
 
 
+def sigmoid(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.Sigmoid(arg), tracer=arg.tracer)
+
+
 def wrap_scalars_helper(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) \
         -> Tuple[ax.Tensor, ax.Tensor]:
     if isinstance(lhs, ax.Tensor) and isinstance(rhs, ax.Tensor):
