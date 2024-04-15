@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     import time
     net = MLP([512] * 128)
-    x = ax.fill(1, (128, 512), dtype=ax.Float32)
+    x = bknd.tensor(np.random.normal(0.0, 1.0, size=(10, 512)).astype(np.float32))
 
     tick = time.time()
     out = net(x)

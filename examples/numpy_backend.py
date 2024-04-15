@@ -7,8 +7,10 @@ import axon as ax
 
 
 class NumpyBackend(ax.Backend):
+
     eval_registry: Dict[str, callable]
     dtype_map: Dict[ax.DType, np.dtype]
+    rev_dtype_map: Dict[np.dtype, ax.DType]
 
     def __init__(self, eval_overrides=None):
         if eval_overrides is None:
@@ -36,6 +38,31 @@ class NumpyBackend(ax.Backend):
             ax.Float32: np.float32,
             ax.Float64: np.float64,
         }
+
+        self.rev_dtype_map = {
+            np.dtype('bool'): ax.Bool,
+            np.dtype('uint8'): ax.UInt8,
+            np.dtype('uint16'): ax.UInt16,
+            np.dtype('uint32'): ax.UInt32,
+            np.dtype('uint64'): ax.UInt64,
+            np.dtype('int8'): ax.Int8,
+            np.dtype('int16'): ax.Int16,
+            np.dtype('int32'): ax.Int32,
+            np.dtype('int64'): ax.Int64,
+            np.dtype('float16'): ax.Float16,
+            np.dtype('float32'): ax.Float32,
+            np.dtype('float64'): ax.Float64,
+        }
+
+    def tensor(self, data: np.ndarray, shape: Tuple[int, ...] = None, dtype: ax.DType = None) -> ax.Tensor:
+        assert shape is None, "shape information will be read from input ndarray"
+        if dtype is None:
+            try:
+                dtype = self.rev_dtype_map[data.dtype]
+            except KeyError as e:
+                e.add_note(f"Mapping from numpy dtype {data.dtype} to ax.DType does not exist")
+                raise e
+        return ax.Tensor(tuple(data.shape), dtype, data=data)
 
     def eval(self, tensors: List[Tuple[str, ax.Tensor]], retain_graph=False):
         for name, tensor in tensors:
@@ -267,7 +294,6 @@ class NumpyBackend(ax.Backend):
 
     def impl_Mask(self, prim: ax.primitives.Mask, outputs: List[ax.Tensor]):
         outputs[0].data = np.where(prim.args[1].data, prim.args[0].data, np.zeros_like(prim.args[0].data))
-
 
 
 if __name__ == "__main__":
