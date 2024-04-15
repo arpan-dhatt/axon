@@ -32,6 +32,5 @@ if __name__ == "__main__":
     out = ax.fill(0.5, (128, 10), dtype=ax.Float32)
     pred = mod(inp)
     loss, grads = ax.nn.value_and_grad(mod, loss_fn)(mod, inp, out)
-
     ax.print_graph({"loss": loss, "grads": grads})
-    print(mod)
+    ax.eval((loss, grads), bknd)

@@ -103,16 +103,16 @@ class NumpyBackend(ax.Backend):
         outputs[0].data = np.negative(prim.args[0].data)
 
     def impl_Sum(self, prim: ax.primitives.Sum, outputs: List[ax.Tensor]):
-        outputs[0].data = np.sum(prim.args[0].data, axis=prim.axes)
+        outputs[0].data = np.sum(prim.args[0].data, axis=prim.axes, keepdims=True)
 
     def impl_Product(self, prim: ax.primitives.Product, outputs: List[ax.Tensor]):
-        outputs[0].data = np.prod(prim.args[0].data, axis=prim.axes)
+        outputs[0].data = np.prod(prim.args[0].data, axis=prim.axes, keepdims=True)
 
     def impl_Max(self, prim: ax.primitives.Max, outputs: List[ax.Tensor]):
-        outputs[0].data = np.max(prim.args[0].data, axis=prim.axes)
+        outputs[0].data = np.max(prim.args[0].data, axis=prim.axes, keepdims=True)
 
     def impl_Min(self, prim: ax.primitives.Min, outputs: List[ax.Tensor]):
-        outputs[0].data = np.min(prim.args[0].data, axis=prim.axes)
+        outputs[0].data = np.min(prim.args[0].data, axis=prim.axes, keepdims=True)
 
     def impl_Subtract(self, prim: ax.primitives.Subtract, outputs: List[ax.Tensor]):
         outputs[0].data = np.subtract(prim.args[0].data, prim.args[1].data)
@@ -208,6 +208,14 @@ class NumpyBackend(ax.Backend):
 
     def impl_Sigmoid(self, prim: ax.primitives.Sigmoid, outputs: List[ax.Tensor]):
         outputs[0].data = 1/(1 + np.exp(-prim.args[0].data))
+
+    def impl_Softmax(self, prim: ax.primitives.Softmax, outputs: List[ax.Tensor]):
+        outputs[0].data = NumpyBackend.softmax(prim.args[0].data)
+
+    @staticmethod
+    def softmax(x):
+        exp_x = np.exp(x - np.max(x, axis=-1, keepdims=True))
+        return exp_x / np.sum(exp_x, axis=-1, keepdims=True)
 
     def impl_Mask(self, prim: ax.primitives.Mask, outputs: List[ax.Tensor]):
         outputs[0].data = np.where(prim.args[1].data, prim.args[0].data, np.zeros_like(prim.args[0].data))
