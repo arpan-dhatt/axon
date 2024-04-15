@@ -115,7 +115,10 @@ def value_and_grad(fn: Callable, argnum: int = 0) -> callable:
                     adjoints = [adj if adj is not None else ax.zeros_like(primal_cursor.siblings[i])
                                 for i, adj in enumerate(adjoints)]
                 # if there's only one adjoint it's definitely not None and it's ok
-                args_adjoints = primal_cursor.prim.backward(adjoints)
+                args_adjoints = primal_cursor.prim.backward(
+                    adjoints,
+                    [primal_cursor] if len(primal_cursor.siblings) == 0 else primal_cursor.siblings
+                )
 
             # add adjoints calculated from this backward call to cache
             for arg, arg_adjoint in zip(primal_cursor.prim.args, args_adjoints):

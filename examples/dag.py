@@ -20,7 +20,7 @@ def ones_backward(input: ax.Tensor):
 def fn2(params):
     a, b = params
     c = ax.scalar(1.0, ax.Float16)
-    return ones_backward(ax.concat((a, b), 0))[0].reduce_sum().squeeze()
+    return ones_backward(ax.sigmoid(ax.concat((a, b), 0)))[0].reduce_sum().squeeze()
 
 
 if __name__ == "__main__":

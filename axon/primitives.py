@@ -9,11 +9,12 @@ class Primitive:
     def __init__(self, args: Tuple[ax.Tensor, ...]):
         self.args = args
 
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         """
         Performs an adjoint trace through the primitive
-        :param adjoints: adjoints of output tensor
+        :param adjoints: adjoints of output tensors
+        :param outputs: outputs of primitive
         :param argnums: which args of the primitive require their adjoint (by default None means all args)
         """
         raise NotImplementedError(f"{type(self).__name__}.backward(...) not implemented")
@@ -32,7 +33,7 @@ class Cast(UnaryPrimitive):
         super().__init__(arg)
         self.dtype = dtype
 
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (adjoints[0].cast(self.args[0].dtype),)
 
@@ -45,7 +46,7 @@ class Reshape(UnaryPrimitive):
         super().__init__(arg)
         self.shape = shape
 
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (ax.reshape(adjoints[0], self.args[0].shape),)
 
@@ -59,7 +60,7 @@ class Broadcast(UnaryPrimitive):
         self.shape = shape
         self.semantics = semantics
 
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         # deal with expanded dims first
         sum_axes = list(range(0, len(adjoints[0].shape) - len(self.args[0].shape)))
@@ -79,7 +80,7 @@ class Broadcast(UnaryPrimitive):
 
 
 class StopGradient(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (None,)
 
@@ -92,7 +93,7 @@ class CustomGradient(Primitive):
         self.grad_fn = grad_fn
         self.kwargs = kwargs
 
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         grads = self.grad_fn(adjoints, argnums, **self.kwargs)
         for arg, grad in zip(self.args, grads):
@@ -106,7 +107,7 @@ class PermuteDims(UnaryPrimitive):
         super().__init__(arg)
         self.dims = dims
 
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         reverse_dims = [0] * len(self.dims)
         for i, dim in enumerate(self.dims):
@@ -118,7 +119,7 @@ class PermuteDims(UnaryPrimitive):
 
 
 class Negate(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (-adjoints[0],)
 
@@ -133,7 +134,7 @@ class ReductionPrimitive(UnaryPrimitive):
 
 
 class Sum(ReductionPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (ax.broadcast(adjoints[0], self.args[0].shape),)
 
@@ -158,19 +159,19 @@ class BinaryPrimitive(Primitive):
 
 
 class Add(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return adjoints[0], adjoints[0]
 
 
 class Subtract(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return adjoints[0], -adjoints[0]
 
 
 class Multiply(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         lhs, rhs = self.args
         lhs_adjoint = adjoints[0] * rhs
@@ -179,7 +180,7 @@ class Multiply(BinaryPrimitive):
 
 
 class Divide(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         lhs, rhs = self.args
         lhs_adjoint = adjoints[0] / rhs
@@ -188,7 +189,7 @@ class Divide(BinaryPrimitive):
 
 
 class MatMul(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         lhs, rhs = self.args
         lhs_adjoint = ax.matmul(adjoints[0], rhs.mT())
@@ -197,7 +198,7 @@ class MatMul(BinaryPrimitive):
 
 
 class Maximum(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         lhs, rhs = self.args
         lhs_mask = ax.greater_or_equal(lhs, rhs)
@@ -208,7 +209,7 @@ class Maximum(BinaryPrimitive):
 
 
 class Minimum(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         lhs, rhs = self.args
         lhs_mask = ax.lesser_or_equal(lhs, rhs)
@@ -219,49 +220,49 @@ class Minimum(BinaryPrimitive):
 
 
 class Greater(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return tuple(map(lambda a: ax.zeros_like(a), self.args))
 
 
 class Lesser(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return tuple(map(lambda a: ax.zeros_like(a), self.args))
 
 
 class Equal(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return tuple(map(lambda a: ax.zeros_like(a), self.args))
 
 
 class GreaterOrEqual(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return tuple(map(lambda a: ax.zeros_like(a), self.args))
 
 
 class LesserOrEqual(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return tuple(map(lambda a: ax.zeros_like(a), self.args))
 
 
 class LogicalNot(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return tuple(map(lambda a: ax.zeros_like(a), self.args))
 
 
 class LogicalAnd(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return tuple(map(lambda a: ax.zeros_like(a), self.args))
 
 
 class LogicalOr(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return tuple(map(lambda a: ax.zeros_like(a), self.args))
 
@@ -277,7 +278,7 @@ class Concatenate(Primitive):
         super().__init__(args)
         self.axis = axis
 
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         offset = 0
 
@@ -299,7 +300,7 @@ class Split(UnaryPrimitive):
         self.indices_or_sections = indices_or_sections
         self.axis = axis
 
-    def backward(self, adjoints: Sequence[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: Sequence[ax.Tensor], outputs: [ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (ax.concat(adjoints, self.axis),)
 
@@ -331,85 +332,85 @@ class Slice(UnaryPrimitive):
 
 
 class Sin(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (adjoints[0] * self.args[0].cos(),)
 
 
 class ArcSin(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (adjoints[0] / (1 - self.args[0] ** 2).sqrt(),)
 
 
 class Sinh(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (adjoints[0] * self.args[0].cosh(),)
 
 
 class ArcSinh(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (adjoints[0] / (1 + self.args[0] ** 2).sqrt(),)
 
 
 class Cos(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (-adjoints[0] * self.args[0].sin(),)
 
 
 class ArcCos(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (-adjoints[0] / (1 - self.args[0] ** 2).sqrt(),)
 
 
 class Cosh(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (adjoints[0] * self.args[0].sinh(),)
 
 
 class ArcCosh(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (adjoints[0] / (self.args[0] ** 2 - 1).sqrt(),)
 
 
 class Tan(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (adjoints[0] / self.args[0].cos() ** 2,)
 
 
 class ArcTan(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (adjoints[0] / (1 + self.args[0] ** 2),)
 
 
 class Tanh(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (adjoints[0] * (1 - self.args[0].tanh() ** 2),)
 
 
 class ArcTanh(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (adjoints[0] / (1 - self.args[0] ** 2),)
 
 
 class Log(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (adjoints[0] / self.args[0],)
 
 
 class Power(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         lhs, rhs = self.args
         lhs_adjoint = adjoints[0] * rhs * lhs ** (rhs - 1)
@@ -418,20 +419,20 @@ class Power(BinaryPrimitive):
 
 
 class Sqrt(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return (adjoints[0] / (2 * self.args[0].sqrt()),)
 
 
 class Sigmoid(UnaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         # TODO: fix backward
-        return (adjoints[0] / (2 * self.args[0].sqrt()),)
+        return (outputs[0] * (1 - outputs[0]),)
 
 
 class Mask(BinaryPrimitive):
-    def backward(self, adjoints: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         lhs, rhs = self.args
         lhs_adjoint = ax.mask(adjoints[0], rhs)

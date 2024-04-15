@@ -1,13 +1,37 @@
 import axon as ax
 from numpy_backend import NumpyBackend
 
+
+class MLP(ax.nn.Module):
+    def __init__(self, layers: list, lact: callable, fact: callable):
+        super().__init__()
+        self.lact = lact
+        self.fact = fact
+
+        self.layers = []
+        for i in range(1, len(layers)):
+            self.layers.append(ax.nn.Linear(layers[i-1], layers[i], bias=True))
+
+    def __call__(self, x):
+        for i, lin in enumerate(self.layers):
+            if i == len(self.layers) - 1:
+                return self.fact(lin(x))
+            else:
+                x = self.lact(lin(x))
+
+
+def loss_fn(module, x: ax.Tensor, y: ax.Tensor):
+    return (y - module(x)).mean().squeeze()
+
+
 if __name__ == "__main__":
     bknd = NumpyBackend()
 
-    lin = ax.nn.Linear(100, 10, bias=True)
-    inp = ax.fill(1.0, (128, 100), dtype=ax.Float32)
+    mod = MLP([128, 64, 64, 32, 1], lambda x: ax.maximum(x, 0.0), ax.sigmoid)
+    inp = ax.fill(1.0, (128, 128), dtype=ax.Float32)
+    out = ax.fill(0.5, (128, 1), dtype=ax.Float32)
+    pred = mod(inp)
+    loss, grads = ax.nn.value_and_grad(mod, loss_fn)(mod, inp, out)
 
-    out = lin(inp)
-    ax.print_graph({"out": out})
-    ax.print_graph(lin)
-    print(lin)
+    ax.print_graph({"loss": loss, "grads": grads})
+    print(mod)

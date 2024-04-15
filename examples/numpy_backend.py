@@ -206,6 +206,9 @@ class NumpyBackend(ax.Backend):
     def impl_Sqrt(self, prim: ax.primitives.Sqrt, outputs: List[ax.Tensor]):
         outputs[0].data = np.sqrt(prim.args[0].data)
 
+    def impl_Sigmoid(self, prim: ax.primitives.Sigmoid, outputs: List[ax.Tensor]):
+        outputs[0].data = 1/(1 + np.exp(-prim.args[0].data))
+
     def impl_Mask(self, prim: ax.primitives.Mask, outputs: List[ax.Tensor]):
         outputs[0].data = np.where(prim.args[1].data, prim.args[0].data, np.zeros_like(prim.args[0].data))
 
