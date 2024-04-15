@@ -10,7 +10,8 @@ from axon.primitives import Primitive
 # creation
 from axon.ops import fill, scalar, zeros_like, ones_like, fill_like
 # unary
-from axon.ops import broadcast, cast, negate, stop_gradient, sqrt, log, sigmoid, softmax, wrap_scalar, custom_gradient
+from axon.ops import (broadcast, cast, negate, stop_gradient, sqrt, log, sigmoid, softmax, exp, erf, erfinv,
+                      wrap_scalar, custom_gradient)
 # manipulation
 from axon.ops import reshape, permute_dims, matrix_transpose, array_slice, expand_dims, flatten, squeeze, split
 # reduction

@@ -509,6 +509,18 @@ def softmax(arg: ax.Tensor) -> ax.Tensor:
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Softmax(arg), tracer=arg.tracer)
 
 
+def exp(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.Exp(arg), tracer=arg.tracer)
+
+
+def erf(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.Erf(arg), tracer=arg.tracer)
+
+
+def erfinv(arg: ax.Tensor) -> ax.Tensor:
+    return ax.Tensor(arg.shape, arg.dtype, prim=prims.ErfInv(arg), tracer=arg.tracer)
+
+
 def wrap_scalars_helper(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, float, bool]) \
         -> Tuple[ax.Tensor, ax.Tensor]:
     if isinstance(lhs, ax.Tensor) and isinstance(rhs, ax.Tensor):

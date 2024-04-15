@@ -1,5 +1,6 @@
 from typing import *
 
+import math
 import axon as ax
 
 
@@ -434,6 +435,29 @@ class Softmax(UnaryPrimitive):
     def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
         return ((outputs[0] * (ax.reduce_sum(outputs[0] * adjoints[0], -1))),)
+
+
+class Exp(UnaryPrimitive):
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+            -> Tuple[Optional[ax.Tensor], ...]:
+        return (adjoints[0] * outputs[0],)
+
+
+_M_2_SQRTPI = 2.0 / math.sqrt(math.pi)
+
+
+class Erf(UnaryPrimitive):
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+            -> Tuple[Optional[ax.Tensor], ...]:
+        scale = ax.scalar(1.0 / _M_2_SQRTPI, outputs[0].dtype) * adjoints[0]
+        return scale * ax.exp(-ax.power(self.args[0], ax.scalar(2.0, outputs[0].dtype)))
+
+
+class ErfInv(UnaryPrimitive):
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+            -> Tuple[Optional[ax.Tensor], ...]:
+        scale = ax.scalar(1.0 / _M_2_SQRTPI, outputs[0].dtype) * adjoints[0]
+        return scale * ax.exp(ax.power(ax.erfinv(self.args[0]), ax.scalar(2.0, outputs[0].dtype)))
 
 
 class Mask(BinaryPrimitive):
