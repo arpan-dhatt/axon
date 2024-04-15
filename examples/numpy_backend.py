@@ -1,6 +1,7 @@
 from typing import *
 
 import numpy as np
+import math
 
 import axon as ax
 
@@ -212,10 +213,57 @@ class NumpyBackend(ax.Backend):
     def impl_Softmax(self, prim: ax.primitives.Softmax, outputs: List[ax.Tensor]):
         outputs[0].data = NumpyBackend.softmax(prim.args[0].data)
 
+    def impl_Exp(self, prim: ax.primitives.Exp, outputs: List[ax.Tensor]):
+        outputs[0].data = np.exp(prim.args[0].data)
+
+    def impl_Erf(self, prim: ax.primitives.Erf, outputs: List[ax.Tensor]):
+        outputs[0].data = NumpyBackend.erf(prim.args[0].data)
+
+    def impl_ErfInv(self, prim: ax.primitives.ErfInv, outputs: List[ax.Tensor]):
+        outputs[0].data = NumpyBackend.erfinv(prim.args[0].data)
+
     @staticmethod
     def softmax(x):
         exp_x = np.exp(x - np.max(x, axis=-1, keepdims=True))
         return exp_x / np.sum(exp_x, axis=-1, keepdims=True)
+
+    @staticmethod
+    def erf(x):
+        # Constants
+        a1 = 0.254829592
+        a2 = -0.284496736
+        a3 = 1.421413741
+        a4 = -1.453152027
+        a5 = 1.061405429
+        p = 0.3275911
+
+        # Sign of x
+        sign = np.sign(x)
+        x = np.abs(x)
+
+        # A&S formula 7.1.26
+        t = 1.0 / (1.0 + p * x)
+        y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * np.exp(-x * x)
+
+        return sign * y
+
+    @staticmethod
+    def erfinv(x):
+        # Constants
+        a = 0.147
+
+        # Sign of x
+        sign = np.sign(x)
+        x = np.abs(x)
+
+        # Compute log(1-x^2)
+        lnx = np.log(1 - x * x)
+
+        # A&S formula 7.1.27
+        t = 1 / (1 + a * x)
+        y = (((2 / (math.pi * a) + lnx / 2) * t - lnx) * t - 1 / a) * t
+
+        return sign * y
 
     def impl_Mask(self, prim: ax.primitives.Mask, outputs: List[ax.Tensor]):
         outputs[0].data = np.where(prim.args[1].data, prim.args[0].data, np.zeros_like(prim.args[0].data))
@@ -228,7 +276,7 @@ if __name__ == "__main__":
     w = ax.fill(2, (32, 10), ax.Float16)
     b = ax.fill(7, (10,), ax.Float16)
 
-    y = x @ w + b
+    y = ax.exp(x @ w + b)
     ax.print_graph(y)
     ax.eval(y, backend=bknd)
     print(y.data)
