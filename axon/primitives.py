@@ -427,8 +427,13 @@ class Sqrt(UnaryPrimitive):
 class Sigmoid(UnaryPrimitive):
     def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
             -> Tuple[Optional[ax.Tensor], ...]:
-        # TODO: fix backward
         return (outputs[0] * (1 - outputs[0]),)
+
+
+class Softmax(UnaryPrimitive):
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+            -> Tuple[Optional[ax.Tensor], ...]:
+        return ((outputs[0] * (ax.reduce_sum(outputs[0] * adjoints[0], -1))),)
 
 
 class Mask(BinaryPrimitive):

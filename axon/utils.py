@@ -76,7 +76,8 @@ def reformat_reduce_axes(shape: Sequence[int], axes: Union[int, Sequence[int], N
         axes = tuple(range(len(shape)))
     if isinstance(axes, int):
         axes = (axes,)
-    return axes if isinstance(axes, tuple) else tuple(axes)
+    axes = [axis if axis >= 0 else len(shape) + axis for axis in axes]
+    return tuple(axes)
 
 
 def shaped_size(shape: Sequence[int]) -> int:

@@ -17,3 +17,7 @@ def relu(x: ax.Tensor) -> ax.Tensor:
 
 def leaky_relu(x: ax.Tensor, alpha: float = 0.01) -> ax.Tensor:
     return ax.maximum(x, alpha * x)
+
+
+def softmax(x: ax.Tensor) -> ax.Tensor:
+    return ax.softmax(x)

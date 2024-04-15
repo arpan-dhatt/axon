@@ -27,9 +27,9 @@ def loss_fn(module, x: ax.Tensor, y: ax.Tensor):
 if __name__ == "__main__":
     bknd = NumpyBackend()
 
-    mod = MLP([128, 64, 64, 32, 1], ax.nn.relu, ax.nn.sigmoid)
+    mod = MLP([128, 64, 64, 32, 10], ax.nn.relu, ax.nn.softmax)
     inp = ax.fill(1.0, (128, 128), dtype=ax.Float32)
-    out = ax.fill(0.5, (128, 1), dtype=ax.Float32)
+    out = ax.fill(0.5, (128, 10), dtype=ax.Float32)
     pred = mod(inp)
     loss, grads = ax.nn.value_and_grad(mod, loss_fn)(mod, inp, out)
 
