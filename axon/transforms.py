@@ -1,4 +1,5 @@
 from collections import defaultdict
+from contextvars import ContextVar
 from typing import *
 
 # not used here but re-exported into this utils module
@@ -146,5 +147,8 @@ def grad(fn: Callable, argnum: int = 0) -> callable:
     return grad_fn
 
 
-def eval(tree, backend: 'ax.Backend', **kwargs):
+def eval(tree, backend: Optional['ax.Backend'] = None, **kwargs):
+    if backend is None:
+        backend = ax.context.backend.get()
+    assert backend is not None, "Backend wasn't passed into eval and not in backend context"
     return backend.eval(ax.utils.tree_flatten(tree), **kwargs)

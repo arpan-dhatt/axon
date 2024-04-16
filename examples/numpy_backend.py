@@ -264,11 +264,10 @@ class NumpyBackend(ax.Backend):
 
 
 if __name__ == "__main__":
-    bknd = NumpyBackend()
     y = ax.random.normal( (100, 100), dtype=ax.Float16)
     me = y.mean().squeeze()
     std = ((y - me)**2.0).mean().squeeze().sqrt()
 
-    ax.print_graph((y, me, std))
-    ax.eval((y, me, std), backend=bknd)
-    print(y.data, me.data, std.data)
+    with NumpyBackend():
+        ax.print_graph((y, me, std))
+        print(y, me, std)

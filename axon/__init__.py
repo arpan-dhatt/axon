@@ -41,3 +41,6 @@ from axon.backend import Backend
 
 # nn
 import axon.nn.base
+
+# context variables
+import axon.context

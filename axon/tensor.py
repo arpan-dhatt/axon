@@ -198,3 +198,13 @@ class Tensor:
 
     def __hash__(self):
         return super().__hash__()
+
+    def __repr__(self):
+        return f"axon.Tensor({self.shape}, {self.dtype}, {self.data})"
+
+    def __str__(self):
+        self.eval()
+        return str(self.data)
+
+    def eval(self, backend: Optional['ax.Backend'] = None) -> Any:
+        ax.eval(self, backend)
