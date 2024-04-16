@@ -446,78 +446,97 @@ def power(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.Tensor, int, fl
 
 
 def sqrt(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Sqrt(arg), tracer=arg.tracer)
 
 
 def sin(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Sin(arg), tracer=arg.tracer)
 
 
 def arcsin(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.ArcSin(arg), tracer=arg.tracer)
 
 
 def sinh(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Sinh(arg), tracer=arg.tracer)
 
 
 def arcsinh(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.ArcSinh(arg), tracer=arg.tracer)
 
 
 def cos(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Cos(arg), tracer=arg.tracer)
 
 
 def arccos(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.ArcCos(arg), tracer=arg.tracer)
 
 
 def cosh(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Cosh(arg), tracer=arg.tracer)
 
 
 def arccosh(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.ArcCosh(arg), tracer=arg.tracer)
 
 
 def tan(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Tan(arg), tracer=arg.tracer)
 
 
 def arctan(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.ArcTan(arg), tracer=arg.tracer)
 
 
 def tanh(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Tanh(arg), tracer=arg.tracer)
 
 
 def arctanh(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.ArcTanh(arg), tracer=arg.tracer)
 
 
 def log(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Log(arg), tracer=arg.tracer)
 
 
 def sigmoid(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Sigmoid(arg), tracer=arg.tracer)
 
 
 def softmax(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Softmax(arg), tracer=arg.tracer)
 
 
 def exp(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Exp(arg), tracer=arg.tracer)
 
 
 def erf(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.Erf(arg), tracer=arg.tracer)
 
 
 def erfinv(arg: ax.Tensor) -> ax.Tensor:
+    arg = wrap_scalar(arg)
     return ax.Tensor(arg.shape, arg.dtype, prim=prims.ErfInv(arg), tracer=arg.tracer)
 
 
@@ -533,7 +552,7 @@ def wrap_scalars_helper(lhs: Union[ax.Tensor, int, float, bool], rhs: Union[ax.T
         raise TypeError(f"At least one operand must be an ax.Tensor")
 
 
-def wrap_scalar(value: Union[ax.Tensor, int, float, bool], intended_dtype: ax.DType) -> ax.Tensor:
+def wrap_scalar(value: Union[ax.Tensor, int, float, bool], intended_dtype: ax.DType = None) -> ax.Tensor:
     if isinstance(value, (int, float, bool)):
         if isinstance(value, int):
             if intended_dtype in [ax.UInt8, ax.UInt16, ax.UInt32, ax.UInt64, ax.Int8, ax.Int16, ax.Int32, ax.Int64]:
@@ -542,12 +561,18 @@ def wrap_scalar(value: Union[ax.Tensor, int, float, bool], intended_dtype: ax.DT
                 return ax.scalar(float(value), dtype=intended_dtype)
             elif intended_dtype == ax.Bool:
                 return ax.scalar(bool(value), dtype=ax.Bool)
+            else:
+                return ax.scalar(value, dtype=ax.Int64)
         elif isinstance(value, float):
-            if intended_dtype in [ax.Float32, ax.Float64]:
+            if intended_dtype in [ax.BFloat16, ax.Float16, ax.Float32, ax.Float64]:
                 return ax.scalar(value, dtype=intended_dtype)
+            else:
+                return ax.scalar(float(value), dtype=ax.Float64)
         elif isinstance(value, bool):
             if intended_dtype == ax.Bool:
                 return ax.scalar(value, dtype=ax.Bool)
+            else:
+                return ax.scalar(bool(value), dtype=ax.Bool)
         raise TypeError(f"Incompatible data types: {type(value).__name__} and {intended_dtype}")
     elif isinstance(value, ax.Tensor):
         return value

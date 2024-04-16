@@ -24,6 +24,15 @@ class Primitive:
         return type(self).__name__
 
 
+class LoadPrimitive(Primitive):
+    def __init__(self):
+        super().__init__(tuple())
+
+    def backward(self, adjoints: List[ax.Tensor], outputs: List[ax.Tensor], argnums: Optional[Tuple[int, ...]] = None) \
+            -> Tuple[Optional[ax.Tensor], ...]:
+        raise RuntimeError("Load Primitives should never have backwards called on them")
+
+
 class UnaryPrimitive(Primitive):
     def __init__(self, arg: ax.Tensor):
         super().__init__((arg,))
@@ -467,3 +476,7 @@ class Mask(BinaryPrimitive):
         lhs_adjoint = ax.mask(adjoints[0], rhs)
         rhs_adjoint = ax.zeros_like(rhs)
         return lhs_adjoint, rhs_adjoint
+
+
+class RandomBits(LoadPrimitive):
+    pass

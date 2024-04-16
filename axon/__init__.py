@@ -30,6 +30,8 @@ from axon.ops import arcsin, arccos, arctan, arcsinh, arccosh, arctanh
 from axon.ops import concat, stack
 # debugging
 from axon.ops import print_graph
+# random
+import axon.random
 
 # transforms
 from axon.transforms import value_and_grad, grad, eval
