@@ -77,7 +77,7 @@ class Broadcast(UnaryPrimitive):
         # now add any dims in adjoint_shape that were 1 in original shape but expanded
         for i in range(-len(self.args[0].shape), 0):
             if self.args[0].shape[i] == 1 and adjoints[0].shape[i] > 1:
-                sum_axes.append(len(adjoints[0].shape) - i)
+                sum_axes.append(len(adjoints[0].shape) + i)
             if i >= -2 and self.semantics == ax.utils.BroadcastSemantics.MatMul:
                 # ignore last two dimensions on matmul
                 break

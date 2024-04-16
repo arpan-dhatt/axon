@@ -127,6 +127,14 @@ def fill(value: Union[int, float, bool], shape: Sequence[int], dtype: DType = No
     return broadcast(scalar(value, dtype), shape)
 
 
+def ones(shape: Sequence[int], dtype: DType = None):
+    return fill(1.0, shape, dtype)
+
+
+def zeros(shape: Sequence[int], dtype: DType = None):
+    return fill(0.0, shape, dtype)
+
+
 def zeros_like(arg: ax.Tensor) -> ax.Tensor:
     return fill_like(arg, 0)
 
@@ -198,6 +206,13 @@ def mean(arg: ax.Tensor, axes: Union[int, Sequence[int], None] = None) -> ax.Ten
     summed = reduce_sum(arg, axes)
     return summed / scalar(
         utils.shaped_size([l for dim, l in enumerate(arg.shape) if (dim in axes)]), arg.dtype)
+
+
+def var(arg: ax.Tensor, axes: Union[int, Sequence[int], None] = None) -> ax.Tensor:
+    axes = utils.reformat_reduce_axes(arg.shape, axes)
+    means = mean(arg, axes)
+    return ((arg - means)**scalar(2, arg.dtype)).reduce_sum(axes) / scalar(
+        utils.shaped_size([l for dim, l in enumerate(arg.shape) if (dim in axes)]) - 1, arg.dtype)
 
 
 def reduce_max(arg: ax.Tensor, axes: Union[int, Sequence[int], None] = None) -> ax.Tensor:

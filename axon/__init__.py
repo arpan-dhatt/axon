@@ -8,14 +8,14 @@ import axon.primitives
 from axon.primitives import Primitive
 
 # creation
-from axon.ops import fill, scalar, zeros_like, ones_like, fill_like
+from axon.ops import fill, scalar, zeros_like, ones_like, fill_like, ones, zeros
 # unary
 from axon.ops import (broadcast, cast, negate, stop_gradient, sqrt, log, sigmoid, softmax, exp, erf, erfinv,
                       wrap_scalar, custom_gradient)
 # manipulation
 from axon.ops import reshape, permute_dims, matrix_transpose, array_slice, expand_dims, flatten, squeeze, split
 # reduction
-from axon.ops import reduce_sum, product, mean, reduce_min, reduce_max
+from axon.ops import reduce_sum, product, mean, reduce_min, reduce_max, var
 # binary
 from axon.ops import broadcast_pair, add, subtract, multiply, divide, maximum, minimum, matmul, power
 # binary masking
