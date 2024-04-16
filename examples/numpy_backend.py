@@ -264,10 +264,11 @@ class NumpyBackend(ax.Backend):
 
 
 if __name__ == "__main__":
-    y = ax.random.normal( (100, 100), dtype=ax.Float16)
+    y = ax.random.normal((100, 100), dtype=ax.Float16)
     me = y.mean().squeeze()
     std = ((y - me)**2.0).mean().squeeze().sqrt()
 
     with NumpyBackend():
         ax.print_graph((y, me, std))
         print(y, me, std)
+        print(ax.random.bernoulli(0.10, (10, 10)).reduce_sum())

@@ -33,3 +33,8 @@ def normal(shape: Sequence[int], dtype: ax.DType, loc: float = 0.0, scale: float
     samples = uniform(math.nextafter(-1.0, math.inf), 1.0, shape, ax.Float64)
     return (ax.wrap_scalar(math.sqrt(2.0), ax.Float64)
             * ax.erfinv(samples) * scale + loc).cast(dtype)
+
+
+def bernoulli(p: float, shape: Sequence[int]) -> ax.Tensor:
+    sample = uniform(0.0, 1.0, shape, ax.Float32)
+    return ax.lesser(sample, p)
