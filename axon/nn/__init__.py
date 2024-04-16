@@ -5,3 +5,4 @@ from axon.nn.dropout import Dropout
 from axon.nn.normalization import LayerNorm
 
 import axon.nn.functional
+import axon.nn.loss
