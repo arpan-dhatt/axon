@@ -24,4 +24,5 @@ if __name__ == "__main__":
                 .to("mps"))
 
     benchmarker(("Batch Size", batch_sizes), ("Image Size", image_sizes),
-                make_model, make_input, "resnet.torch.gpu.npz", sem="tch")
+                make_model, make_input, "resnet.torch.gpu.npz", sem="tch",
+                trace=[(1, 64), (64, 64)])

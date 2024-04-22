@@ -30,5 +30,6 @@ if __name__ == "__main__":
     benchmarker(
         ("Batch Size", batch_sizes), ("Image Size", image_sizes),
         make_model, make_input,
-        "resnet.mlx.gpu.npz"
+        "resnet.mlx.gpu.npz",
+        trace=[(1, 64), (64, 64)]
     )

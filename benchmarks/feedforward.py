@@ -47,4 +47,5 @@ if __name__ == "__main__":
         return input
 
     benchmarker(("Batch Size", batch_sizes), ("Layer Size", layer_sizes),
-                make_model, make_input, "ff.mlx.gpu.npz")
+                make_model, make_input, "ff.mlx.gpu.npz",
+                trace=[(1, 16384), (128, 16384)])
